@@ -1,0 +1,30 @@
+# Environment files with credentials
+config/**/.env
+
+# Docker compose overrides (configurações locais)
+docker-compose.override.yml
+docker-compose.*.local.yml
+
+# Sensitive configuration files
+*.secret
+*.pem
+*.key
+
+# Docker volumes
+mongodb_data/
+mongodb_data_dev/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

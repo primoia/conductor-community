@@ -1,0 +1,64 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: conductor-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: conductor123
+      MONGO_INITDB_DATABASE: conductor
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - conductor-network
+
+  conductor-api:
+    image: primoia/conductor:latest
+    container_name: conductor-api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    env_file:
+      - ./config/conductor/.env
+    volumes:
+      - ./config/conductor/config.yaml:/app/config.yaml:ro
+    ports:
+      - "3000:8000"
+    networks:
+      - conductor-network
+
+  gateway:
+    image: primoia/conductor-gateway:latest
+    container_name: conductor-gateway
+    restart: unless-stopped
+    depends_on:
+      - conductor-api
+    env_file:
+      - ./config/gateway/.env
+    volumes:
+      - ./config/gateway/config.yaml:/app/config.yaml:ro
+    ports:
+      - "5006:8080"
+    networks:
+      - conductor-network
+
+  web:
+    image: primoia/conductor-web:latest
+    container_name: conductor-web
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "8080:80"
+    networks:
+      - conductor-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  conductor-network:
+    driver: bridge

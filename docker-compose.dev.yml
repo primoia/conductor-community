@@ -1,0 +1,80 @@
+services:
+  # mongodb:
+  #   image: mongo:7.0
+  #   container_name: conductor-mongodb-dev
+  #   restart: unless-stopped
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: admin
+  #     MONGO_INITDB_ROOT_PASSWORD: conductor123
+  #     MONGO_INITDB_DATABASE: conductor
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data_dev:/data/db
+  #   networks:
+  #     - conductor-dev-network
+
+  conductor-api:
+    build:
+      context: ./src/conductor
+      dockerfile: Dockerfile
+    container_name: conductor-api-dev
+    restart: unless-stopped
+    env_file:
+      - ./config/conductor/.env
+    environment:
+      - NODE_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./src/conductor:/app
+      - ./config/conductor/config.yaml:/app/config.yaml:ro
+    ports:
+      - "3000:8000"
+    networks:
+      - conductor-dev-network
+
+  gateway:
+    build:
+      context: ./src/conductor-gateway
+      dockerfile: Dockerfile
+    container_name: conductor-gateway-dev
+    restart: unless-stopped
+    depends_on:
+      - conductor-api
+    env_file:
+      - ./config/gateway/.env
+    environment:
+      - NODE_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./config/gateway/config.yaml:/app/config.yaml:ro
+      - ./src/conductor-gateway/src:/app/src
+    ports:
+      - "5006:8080"
+    networks:
+      - conductor-dev-network
+
+  web:
+    build:
+      context: ./src/conductor-web
+      dockerfile: Dockerfile.angular
+    container_name: conductor-web-dev
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    environment:
+      - GATEWAY_URL=http://gateway:8080
+    ports:
+      - "8080:80"
+    networks:
+      - conductor-dev-network
+
+volumes:
+  mongodb_data_dev:
+    driver: local
+
+networks:
+  conductor-dev-network:
+    driver: bridge
