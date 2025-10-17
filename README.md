@@ -47,16 +47,16 @@ cd conductor-community
 # 2. Configure os arquivos de ambiente
 ./setup.sh
 
-# 3. Inicie a stack de desenvolvimento (com script)
-./start-dev.sh
+# 3. Inicie TUDO (Docker + Watcher)
+./run-start-all-dev.sh
 
-# 4. Teste a comunicação
-./test-stack.sh
-
-# 5. Acesse a aplicação
+# 4. Acesse a aplicação
 # Web UI: http://localhost:8080
 # Gateway API: http://localhost:5006
 # Conductor API: http://localhost:3000
+
+# 5. Quando terminar
+./run-stop-all-dev.sh
 ```
 
 **Agora você tem:** 🔧
