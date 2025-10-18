@@ -4,123 +4,123 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Community](https://img.shields.io/badge/Community-Welcome-orange.svg)](CONTRIBUTING.md)
 
-> **Repositório público e autocontido** que permite rodar a stack completa do Conductor da maneira mais simples possível.
+> **Self-contained public repository** that allows you to run the complete Conductor stack in the simplest way possible.
 
-## 🚀 Início Rápido
+## 🚀 Quick Start
 
-### Para Usuários Finais (Uso Simples)
+### For End Users (Simple Usage)
 
-Se você só quer **usar** o Conductor sem mexer no código:
+If you just want to **use** Conductor without touching the code:
 
 ```bash
-# 1. Clone o repositório
+# 1. Clone the repository
 git clone https://github.com/primoia/conductor-community.git
 cd conductor-community
 
-# 2. Configure os arquivos de ambiente
+# 2. Configure environment files
 ./setup.sh
 
-# 3. (IMPORTANTE) Edite as credenciais para produção
+# 3. (IMPORTANT) Edit credentials for production
 nano config/conductor/.env
 nano config/gateway/.env
 
-# 4. Suba a stack completa
+# 4. Start the complete stack
 docker-compose up -d
 
-# 5. Acesse a aplicação
+# 5. Access the application
 # Web UI: http://localhost:8080
 # Gateway API: http://localhost:5006
 # Conductor API: http://localhost:3000
 ```
 
-**Pronto!** 🎉 A aplicação estará rodando com imagens pré-construídas do Docker Hub.
+**Done!** 🎉 The application will be running with pre-built images from Docker Hub.
 
-### Para Desenvolvedores (Contribuição)
+### For Developers (Contributing)
 
-Se você quer **contribuir** ou modificar o código:
+If you want to **contribute** or modify the code:
 
 ```bash
-# 1. Clone o repositório COM os submódulos
+# 1. Clone the repository WITH submodules
 git clone --recurse-submodules https://github.com/primoia/conductor-community.git
 cd conductor-community
 
-# 2. Configure os arquivos de ambiente
+# 2. Configure environment files
 ./setup.sh
 
-# 3. Inicie TUDO (Docker + Watcher)
+# 3. Start EVERYTHING (Docker + Watcher)
 ./run-start-all-dev.sh
 
-# 4. Acesse a aplicação
+# 4. Access the application
 # Web UI: http://localhost:8080
 # Gateway API: http://localhost:5006
 # Conductor API: http://localhost:3000
 
-# 5. Quando terminar
+# 5. When finished
 ./run-stop-all-dev.sh
 ```
 
-**Agora você tem:** 🔧
-- Código-fonte mapeado para desenvolvimento
-- Live-reload habilitado
-- Capacidade de fazer commits e PRs nos submódulos
+**Now you have:** 🔧
+- Source code mapped for development
+- Live-reload enabled
+- Ability to make commits and PRs in submodules
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 conductor-community/
-├── docker-compose.yml         # Para usuários finais (imagens prontas)
-├── docker-compose.dev.yml     # Para desenvolvedores (build local)
-├── README.md                  # Esta documentação
-├── CONTRIBUTING.md            # Guia para contribuidores
+├── docker-compose.yml         # For end users (ready-made images)
+├── docker-compose.dev.yml     # For developers (local build)
+├── README.md                  # This documentation
+├── CONTRIBUTING.md            # Contributor guide
 │
-├── config/                    # Arquivos de configuração
+├── config/                    # Configuration files
 │   ├── conductor/
 │   │   └── config.yaml.example
 │   └── gateway/
 │       └── gateway.env.example
 │
-└── src/                       # Código-fonte via submódulos Git
-    ├── conductor/             # Submódulo: primoia/conductor
-    ├── conductor-gateway/     # Submódulo: primoia/conductor-gateway
-    └── conductor-web/         # Submódulo: primoia/conductor-web
+└── src/                       # Source code via Git submodules
+    ├── conductor/             # Submodule: primoia/conductor
+    ├── conductor-gateway/     # Submodule: primoia/conductor-gateway
+    └── conductor-web/         # Submodule: primoia/conductor-web
 ```
 
-## 🛠️ Serviços Incluídos
+## 🛠️ Included Services
 
-| Serviço | Porta | Descrição |
-|---------|-------|-----------|
-| **MongoDB** | 27017 | Banco de dados principal |
-| **Conductor API** | 3000 | API principal do Conductor (porta interna: 8000) |
-| **Gateway** | 5006 | Gateway FastAPI (porta interna: 8080) |
-| **Web UI** | 8080 | Interface web do Conductor (Nginx + Angular + React) |
+| Service | Port | Description |
+|---------|------|-------------|
+| **MongoDB** | 27017 | Main database |
+| **Conductor API** | 3000 | Main Conductor API (internal port: 8000) |
+| **Gateway** | 5006 | FastAPI Gateway (internal port: 8080) |
+| **Web UI** | 8080 | Conductor web interface (Nginx + Angular + React) |
 
-## ⚙️ Configuração
+## ⚙️ Configuration
 
-### 🔐 Segurança - Arquivos .env
+### 🔐 Security - .env Files
 
-Os arquivos `.env` **NÃO** devem ser commitados no repositório (estão no `.gitignore`).
+The `.env` files should **NOT** be committed to the repository (they're in `.gitignore`).
 
-**Estrutura:**
+**Structure:**
 ```
 config/
 ├── conductor/
 │   ├── .env.example          # Template
-│   └── .env                  # Suas credenciais (gitignored)
+│   └── .env                  # Your credentials (gitignored)
 └── gateway/
     ├── .env.example          # Template  
-    └── .env                  # Suas credenciais (gitignored)
+    └── .env                  # Your credentials (gitignored)
 ```
 
-**Para criar seus .env:**
+**To create your .env files:**
 ```bash
 ./setup.sh
 ```
 
-⚠️ **IMPORTANTE**: Para produção, altere as senhas padrão nos arquivos `.env`!
+⚠️ **IMPORTANT**: For production, change the default passwords in the `.env` files!
 
 ### Conductor API (`config/conductor/config.yaml`)
 
-Principais configurações:
+Main configurations:
 
 ```yaml
 server:
@@ -140,7 +140,7 @@ conductor:
 
 ### Gateway (`config/gateway/gateway.env`)
 
-Principais configurações:
+Main configurations:
 
 ```env
 PORT=8080
@@ -149,150 +149,151 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 CORS_ORIGIN=*
 ```
 
-## 🐳 Comandos Docker Úteis
+## 🐳 Useful Docker Commands
 
-### Gerenciamento da Stack
+### Stack Management
 
 ```bash
-# Subir a stack
+# Start the stack
 docker-compose up -d
 
-# Ver logs
+# View logs
 docker-compose logs -f
 
-# Parar a stack
+# Stop the stack
 docker-compose down
 
-# Reiniciar um serviço específico
+# Restart a specific service
 docker-compose restart conductor-api
 
-# Ver status dos containers
+# View container status
 docker-compose ps
 ```
 
-### Para Desenvolvedores
+### For Developers
 
 ```bash
-# Subir em modo de desenvolvimento
+# Start in development mode
 docker-compose -f docker-compose.dev.yml up --build -d
 
-# Ver logs de desenvolvimento
+# View development logs
 docker-compose -f docker-compose.dev.yml logs -f
 
-# Rebuildar apenas um serviço
+# Rebuild only one service
 docker-compose -f docker-compose.dev.yml up --build conductor-api
 ```
 
-## 🔧 Desenvolvimento
+## 🔧 Development
 
-### Trabalhando com Submódulos
+### Working with Submodules
 
 ```bash
-# Atualizar todos os submódulos
+# Update all submodules
 git submodule update --remote
 
-# Atualizar um submódulo específico
+# Update a specific submodule
 git submodule update --remote src/conductor
 
-# Fazer commit em um submódulo
+# Commit in a submodule
 cd src/conductor
 git add .
-git commit -m "feat: nova funcionalidade"
+git commit -m "feat: new feature"
 git push origin main
 cd ../..
 git add src/conductor
-git commit -m "chore: atualiza submódulo conductor"
+git commit -m "chore: update conductor submodule"
 ```
 
-### Estrutura de Desenvolvimento
+### Development Structure
 
-- **`src/conductor/`**: API principal do Conductor
-- **`src/conductor-gateway/`**: Gateway de API
-- **`src/conductor-web/`**: Interface web Angular
+- **`src/conductor/`**: Main Conductor API
+- **`src/conductor-gateway/`**: API Gateway
+- **`src/conductor-web/`**: Angular web interface
 
-Cada submódulo é um repositório Git independente que pode ser clonado e desenvolvido separadamente.
+Each submodule is an independent Git repository that can be cloned and developed separately.
 
-## 📚 Documentação Adicional
+## 📚 Additional Documentation
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Guia para contribuidores e configuração de submódulos
-- **[SUBMODULES.md](SUBMODULES.md)** - Referência detalhada sobre submódulos Git
-- **[QUICK_COMMANDS.md](QUICK_COMMANDS.md)** - Comandos rápidos e aliases úteis
-- **[VOLUMES_GUIDE.md](VOLUMES_GUIDE.md)** - Guia de volumes e dados persistentes
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contributor guide and submodule configuration
+- **[SUBMODULES.md](SUBMODULES.md)** - Detailed reference on Git submodules
+- **[docs/COMMIT_WORKFLOW.md](docs/COMMIT_WORKFLOW.md)** - Commit workflow with submodules
+- **[QUICK_COMMANDS.md](QUICK_COMMANDS.md)** - Quick commands and useful aliases
+- **[VOLUMES_GUIDE.md](VOLUMES_GUIDE.md)** - Guide to volumes and persistent data
 
-## 🚨 Solução de Problemas
+## 🚨 Troubleshooting
 
-### Problemas Comuns
+### Common Issues
 
-**1. Erro de conexão com MongoDB**
+**1. MongoDB connection error**
 ```bash
-# Verificar se o MongoDB está rodando
+# Check if MongoDB is running
 docker-compose logs mongodb
 
-# Reiniciar o MongoDB
+# Restart MongoDB
 docker-compose restart mongodb
 ```
 
-**2. Erro de configuração**
+**2. Configuration error**
 ```bash
-# Verificar se os arquivos de configuração existem
+# Check if configuration files exist
 ls -la config/conductor/config.yaml
 ls -la config/gateway/gateway.env
 
-# Se não existirem, copie os exemplos
+# If they don't exist, copy the examples
 cp config/conductor/config.yaml.example config/conductor/config.yaml
 cp config/gateway/gateway.env.example config/gateway/gateway.env
 ```
 
-**3. Porta já em uso**
+**3. Port already in use**
 ```bash
-# Verificar qual processo está usando a porta
+# Check which process is using the port
 sudo lsof -i :8080
 sudo lsof -i :5006
 sudo lsof -i :3000
 
-# Parar o processo ou mudar a porta no docker-compose.yml
+# Stop the process or change the port in docker-compose.yml
 ```
 
-**4. Web não conecta ao Gateway**
+**4. Web doesn't connect to Gateway**
 ```bash
-# Use o script de teste para diagnóstico
+# Use the test script for diagnostics
 ./test-stack.sh
 
-# Ver logs do nginx e gateway
+# View nginx and gateway logs
 docker logs conductor-web-dev
 docker logs conductor-gateway-dev
 
-# Testar proxy manualmente
+# Test proxy manually
 curl http://localhost:8080/api/
 curl http://localhost:5006
 ```
 
-### Logs Detalhados
+### Detailed Logs
 
 ```bash
-# Ver logs de todos os serviços
+# View logs from all services
 docker-compose logs -f
 
-# Ver logs de um serviço específico
+# View logs from a specific service
 docker-compose logs -f conductor-api
 docker-compose logs -f gateway
 docker-compose logs -f web
 ```
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Quer contribuir? Veja nosso [Guia de Contribuição](CONTRIBUTING.md)!
+Want to contribute? Check out our [Contributing Guide](CONTRIBUTING.md)!
 
-## 📄 Licença
+## 📄 License
 
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
-## 🆘 Suporte
+## 🆘 Support
 
 - **Issues**: [GitHub Issues](https://github.com/primoia/conductor-community/issues)
-- **Discussões**: [GitHub Discussions](https://github.com/primoia/conductor-community/discussions)
-- **Documentação**: [Wiki](https://github.com/primoia/conductor-community/wiki)
+- **Discussions**: [GitHub Discussions](https://github.com/primoia/conductor-community/discussions)
+- **Documentation**: [Wiki](https://github.com/primoia/conductor-community/wiki)
 
 ---
 
-**Feito com ❤️ pela comunidade Primoia**
+**Made with ❤️ by the Primoia community**
