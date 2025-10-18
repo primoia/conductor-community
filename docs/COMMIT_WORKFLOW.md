@@ -1,223 +1,257 @@
-# Commit Workflow Guide
+# Guia de Workflow de Commits
 
-This guide explains how to properly commit changes in this monorepo project that uses Git submodules.
+> **Guia completo para trabalhar com submodules Git em projetos monorepo**
 
-## Understanding the Structure
+Este guia explica como fazer commits corretamente neste projeto monorepo que utiliza submodules Git.
 
-The `conductor-community` repository is a **monorepo** that includes three submodules:
+## Índice
+
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Workflow Básico](#workflow-básico)
+- [Exemplos Completos](#exemplos-completos)
+- [Cenários Comuns](#cenários-comuns)
+- [Notas Importantes](#notas-importantes)
+- [Comandos Úteis](#comandos-úteis)
+- [Troubleshooting](#troubleshooting)
+- [Boas Práticas](#boas-práticas)
+- [Recursos Adicionais](#recursos-adicionais)
+
+---
+
+## Estrutura do Projeto
+
+O repositório `conductor-community` é um **monorepo** que inclui três submodules:
 
 ```
-conductor-community/           (Main repository)
+conductor-community/           (Repositório principal)
 └── src/
     ├── conductor/             (Submodule)
     ├── conductor-gateway/     (Submodule)
     └── conductor-web/         (Submodule)
 ```
 
-Each submodule is an independent Git repository. This means you need to commit changes in **two places**:
-1. First in the **submodule** repository
-2. Then in the **main repository** (to update the submodule reference)
+### Conceito Importante
 
-## Commit Workflow
+Cada submodule é um repositório Git independente. Isso significa que você precisa fazer commits em **dois lugares**:
 
-### Step 1: Make Changes in a Submodule
+1. **Primeiro** no repositório do **submodule**
+2. **Depois** no **repositório principal** (para atualizar a referência do submodule)
+
+---
+
+## Workflow Básico
+
+### Passo 1: Fazer Mudanças no Submodule
 
 ```bash
-# Navigate to the submodule directory
+# Navegar para o diretório do submodule
 cd src/conductor
 
-# Check the status
+# Verificar o status
 git status
 
-# Create a branch (recommended)
-git checkout -b feature/my-new-feature
+# Criar uma branch (recomendado)
+git checkout -b feature/minha-nova-funcionalidade
 ```
 
-### Step 2: Commit and Push the Submodule
+### Passo 2: Commit e Push do Submodule
 
 ```bash
-# Still inside src/conductor/
+# Ainda dentro de src/conductor/
 git add .
-git commit -m "feat: add new feature"
-git push origin feature/my-new-feature
+git commit -m "feat: adicionar nova funcionalidade"
+git push origin feature/minha-nova-funcionalidade
 
-# Or push to main if you have permissions
+# Ou fazer push para main se tiver permissões
 git push origin main
 ```
 
-### Step 3: Return to Main Repository
+### Passo 3: Voltar ao Repositório Principal
 
 ```bash
-# Go back to the main repository root
-cd ../..  # Now you're back in conductor-community/
+# Voltar para a raiz do repositório principal
+cd ../..  # Agora você está em conductor-community/
 ```
 
-### Step 4: Commit the Submodule Reference Update
+### Passo 4: Commit da Atualização da Referência do Submodule
 
 ```bash
-# Check the status - you'll see the submodule has changed
+# Verificar o status - você verá que o submodule mudou
 git status
 
-# Add the submodule reference
+# Adicionar a referência do submodule
 git add src/conductor
 
-# Commit the update
-git commit -m "chore: update conductor submodule"
+# Fazer commit da atualização
+git commit -m "chore: atualizar submodule conductor"
 
-# Push to main repository
+# Push para o repositório principal
 git push origin main
 ```
 
-## Complete Example
+---
 
-Here's a complete workflow example:
+## Exemplos Completos
+
+### Exemplo 1: Desenvolvimento de Feature
 
 ```bash
-# 1. Make changes in conductor submodule
+# 1. Fazer mudanças no submodule conductor
 cd src/conductor
-git checkout -b feature/add-validation
-# ... make your code changes ...
-git add src/core/validation.py
-git commit -m "feat: add input validation for workflows"
-git push origin feature/add-validation
+git checkout -b feature/adicionar-validacao
 
-# 2. Return to main repo and update submodule reference
+# ... fazer suas mudanças no código ...
+git add src/core/validation.py
+git commit -m "feat: adicionar validação de entrada para workflows"
+git push origin feature/adicionar-validacao
+
+# 2. Voltar ao repo principal e atualizar referência do submodule
 cd ../..
 git add src/conductor
-git commit -m "chore: update conductor submodule with validation feature"
+git commit -m "chore: atualizar submodule conductor com feature de validação"
 git push origin main
 ```
 
-## Working on Multiple Submodules
-
-If you need to change multiple submodules:
+### Exemplo 2: Trabalhando com Múltiplos Submodules
 
 ```bash
-# 1. Commit changes in first submodule
+# 1. Commit das mudanças no primeiro submodule
 cd src/conductor
 git add .
-git commit -m "feat: add new API endpoint"
+git commit -m "feat: adicionar novo endpoint da API"
 git push origin main
 
-# 2. Commit changes in second submodule
+# 2. Commit das mudanças no segundo submodule
 cd ../conductor-gateway
 git add .
-git commit -m "feat: add gateway route for new endpoint"
+git commit -m "feat: adicionar rota do gateway para novo endpoint"
 git push origin main
 
-# 3. Go back to main repo
+# 3. Voltar ao repo principal
 cd ../..
 
-# 4. Update ALL submodule references at once
+# 4. Atualizar TODAS as referências dos submodules de uma vez
 git add src/conductor src/conductor-gateway
-git commit -m "chore: update conductor and gateway submodules"
+git commit -m "chore: atualizar submodules conductor e gateway"
 git push origin main
 ```
 
-## Important Notes
+---
 
-### ⚠️ Always Commit Submodules First
+## Cenários Comuns
 
-**NEVER** commit the main repository before committing the submodule changes. This is the correct order:
-
-1. ✅ **CORRECT**: Submodule → Main Repository
-2. ❌ **WRONG**: Main Repository → Submodule
-
-If you commit the main repo first, it will reference a commit SHA that doesn't exist in the submodule repository yet, causing issues for other developers.
-
-### Checking Submodule Status
-
-```bash
-# From the main repository root
-git submodule status
-
-# See all submodule changes
-git submodule foreach git status
-
-# See what commit each submodule is on
-git submodule foreach git log --oneline -1
-```
-
-### Updating Submodules to Latest
-
-```bash
-# Pull latest changes from all submodules
-git submodule update --remote
-
-# Update a specific submodule
-git submodule update --remote src/conductor
-
-# Then commit the reference update
-git add src/conductor
-git commit -m "chore: update conductor to latest version"
-```
-
-### Pulling Changes from Main Repository
-
-When you pull changes from the main repository, you need to update submodules:
-
-```bash
-# Pull main repository changes
-git pull origin main
-
-# Update submodules to match the references
-git submodule update --init --recursive
-```
-
-## Common Scenarios
-
-### Scenario 1: Quick Bug Fix
+### Cenário 1: Correção Rápida de Bug
 
 ```bash
 cd src/conductor
-git checkout -b fix/critical-bug
-# ... fix the bug ...
+git checkout -b fix/bug-critico
+
+# ... corrigir o bug ...
 git add .
-git commit -m "fix: resolve critical authentication bug"
-git push origin fix/critical-bug
+git commit -m "fix: resolver bug crítico de autenticação"
+git push origin fix/bug-critico
 cd ../..
 git add src/conductor
-git commit -m "chore: update conductor with critical bug fix"
+git commit -m "chore: atualizar conductor com correção de bug crítico"
 git push origin main
 ```
 
-### Scenario 2: Feature Development
+### Cenário 2: Desenvolvimento de Feature
 
 ```bash
 cd src/conductor-web
-git checkout -b feature/new-dashboard
-# ... develop the feature over multiple commits ...
+git checkout -b feature/novo-dashboard
+
+# ... desenvolver a feature ao longo de múltiplos commits ...
 git add .
-git commit -m "feat: add new dashboard component"
+git commit -m "feat: adicionar componente de novo dashboard"
 git add .
-git commit -m "feat: add dashboard API integration"
+git commit -m "feat: adicionar integração da API do dashboard"
 git add .
-git commit -m "test: add dashboard tests"
-git push origin feature/new-dashboard
+git commit -m "test: adicionar testes do dashboard"
+git push origin feature/novo-dashboard
 cd ../..
 git add src/conductor-web
-git commit -m "chore: update conductor-web with new dashboard feature"
+git commit -m "chore: atualizar conductor-web com feature de novo dashboard"
 git push origin main
 ```
 
-### Scenario 3: Syncing with Team Changes
+### Cenário 3: Sincronização com Mudanças da Equipe
 
 ```bash
-# Get latest from main repo
+# Obter o mais recente do repo principal
 git pull origin main
 
-# Update all submodules
+# Atualizar todos os submodules
 git submodule update --init --recursive
 
-# Or use the shorthand
+# Ou usar o atalho
 git pull --recurse-submodules
 ```
 
+---
+
+## Notas Importantes
+
+### ⚠️ SEMPRE Commite Submodules Primeiro
+
+**NUNCA** faça commit do repositório principal antes de fazer commit das mudanças do submodule. Esta é a ordem correta:
+
+1. ✅ **CORRETO**: Submodule → Repositório Principal
+2. ❌ **ERRADO**: Repositório Principal → Submodule
+
+Se você fizer commit do repo principal primeiro, ele referenciará um commit SHA que ainda não existe no repositório do submodule, causando problemas para outros desenvolvedores.
+
+---
+
+## Comandos Úteis
+
+### Verificar Status dos Submodules
+
+```bash
+# A partir da raiz do repositório principal
+git submodule status
+
+# Ver todas as mudanças dos submodules
+git submodule foreach git status
+
+# Ver em qual commit cada submodule está
+git submodule foreach git log --oneline -1
+```
+
+### Atualizar Submodules para a Versão Mais Recente
+
+```bash
+# Puxar mudanças mais recentes de todos os submodules
+git submodule update --remote
+
+# Atualizar um submodule específico
+git submodule update --remote src/conductor
+
+# Depois fazer commit da atualização da referência
+git add src/conductor
+git commit -m "chore: atualizar conductor para versão mais recente"
+```
+
+### Puxar Mudanças do Repositório Principal
+
+Quando você puxar mudanças do repositório principal, precisa atualizar os submodules:
+
+```bash
+# Puxar mudanças do repositório principal
+git pull origin main
+
+# Atualizar submodules para corresponder às referências
+git submodule update --init --recursive
+```
+
+---
+
 ## Troubleshooting
 
-### "Detached HEAD" in Submodule
+### "Detached HEAD" no Submodule
 
-Submodules are often in detached HEAD state. To fix:
+Submodules frequentemente ficam em estado detached HEAD. Para corrigir:
 
 ```bash
 cd src/conductor
@@ -226,70 +260,104 @@ git pull origin main
 cd ../..
 ```
 
-### Uncommitted Changes in Submodule
+### Mudanças Não Commitadas no Submodule
 
 ```bash
-# See what's uncommitted
+# Ver o que não foi commitado
 cd src/conductor
 git status
 
-# Either commit them
+# Ou commitá-las
 git add .
-git commit -m "fix: uncommitted changes"
+git commit -m "fix: mudanças não commitadas"
 git push origin main
 
-# Or discard them
+# Ou descartá-las
 git checkout .
 cd ../..
 ```
 
-### Submodule Reference Not Updated
+### Referência do Submodule Não Atualizada
 
 ```bash
-# Check if submodule needs updating
+# Verificar se o submodule precisa ser atualizado
 git status
 
-# You'll see something like:
+# Você verá algo como:
 # modified:   src/conductor (new commits)
 
-# Add and commit the reference
+# Adicionar e fazer commit da referência
 git add src/conductor
-git commit -m "chore: update conductor submodule"
+git commit -m "chore: atualizar submodule conductor"
 ```
-
-## Best Practices
-
-1. **Always work on branches** in submodules, especially for features
-2. **Write clear commit messages** following [Conventional Commits](https://www.conventionalcommits.org/)
-3. **Test before committing** - run tests in the submodule before pushing
-4. **Document breaking changes** in commit messages
-5. **Keep submodules in sync** - regularly update to avoid conflicts
-6. **Never force push** to main/master branches
-7. **Commit often** in submodules, but be strategic about when you update the main repo reference
-
-## Quick Reference
-
-```bash
-# Most common workflow
-cd src/[submodule-name]
-git checkout -b [branch-name]
-# ... make changes ...
-git add .
-git commit -m "[type]: [description]"
-git push origin [branch-name]
-cd ../..
-git add src/[submodule-name]
-git commit -m "chore: update [submodule-name] submodule"
-git push origin main
-```
-
-## Additional Resources
-
-- [SUBMODULES.md](../SUBMODULES.md) - Detailed submodule reference
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
-- [Git Submodules Documentation](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
 ---
 
-**Remember**: Submodule commits → Main repository commit. Always in this order! 🚀
+## Boas Práticas
 
+### Estratégias de Desenvolvimento
+
+1. **Sempre trabalhe em branches** nos submodules, especialmente para features
+2. **Escreva mensagens de commit claras** seguindo [Conventional Commits](https://www.conventionalcommits.org/)
+3. **Teste antes de commitar** - execute testes no submodule antes de fazer push
+4. **Documente mudanças que quebram compatibilidade** nas mensagens de commit
+5. **Mantenha submodules sincronizados** - atualize regularmente para evitar conflitos
+6. **Nunca force push** para branches main/master
+7. **Faça commits frequentes** nos submodules, mas seja estratégico sobre quando atualizar a referência do repo principal
+
+### Convenções de Commit
+
+```bash
+# Tipos de commit recomendados
+feat:     nova funcionalidade
+fix:      correção de bug
+docs:     mudanças na documentação
+style:    formatação, ponto e vírgula, etc.
+refactor: refatoração de código
+test:     adicionar ou corrigir testes
+chore:    mudanças em ferramentas, configurações, etc.
+```
+
+---
+
+## Recursos Adicionais
+
+### Documentação Relacionada
+
+- [SUBMODULES.md](../SUBMODULES.md) - Referência detalhada de submodules
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Diretrizes de contribuição
+- [Git Submodules Documentation](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
+
+### Referência Rápida
+
+```bash
+# Workflow mais comum
+cd src/[nome-do-submodule]
+git checkout -b [nome-da-branch]
+# ... fazer mudanças ...
+git add .
+git commit -m "[tipo]: [descrição]"
+git push origin [nome-da-branch]
+cd ../..
+git add src/[nome-do-submodule]
+git commit -m "chore: atualizar submodule [nome-do-submodule]"
+git push origin main
+```
+
+---
+
+## Resumo
+
+> **Lembre-se**: Commits do submodule → Commit do repositório principal. Sempre nesta ordem!
+
+### Checklist Rápido
+
+- [ ] Fazer mudanças no submodule
+- [ ] Commit e push no submodule
+- [ ] Voltar ao repositório principal
+- [ ] Atualizar referência do submodule
+- [ ] Commit e push no repositório principal
+
+---
+
+**💡 Dica**: Use este guia como referência rápida sempre que trabalhar com submodules!
