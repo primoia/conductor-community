@@ -4,10 +4,10 @@
 storage:
   # Storage type: 'filesystem' or 'mongodb'
   type: mongodb
-  
+
   # For filesystem storage (optional)
   backup_path: .conductor_workspace
-  
+
   # For MongoDB storage - conecta no MongoDB externo (host)
   connection_string: mongodb://admin:czrimr@host.docker.internal:27017/conductor?authSource=admin
 
@@ -20,14 +20,14 @@ ai_providers:
   # Default providers for different task types
   default_providers:
     # Provider for chat interactions
-    chat: cursor-agent
-    
+    chat: claude
+
     # Provider for code generation tasks
-    generation: cursor-agent
-  
+    generation: claude
+
   # Fallback provider when others fail or are not configured
   # Options: claude, gemini, cursor-agent
-  fallback_provider: cursor-agent
+  fallback_provider: claude
 
 # Prompt format (optional)
 # prompt_format: xml  # Options: 'xml' or 'text'
