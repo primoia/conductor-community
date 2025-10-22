@@ -1,0 +1,88 @@
+{
+  "saga": {
+    "id": "SAGA-001",
+    "title": "Validação e Melhoria do Fluxo 'Criar Novo Roteiro'",
+    "description": "Implementar melhorias no sistema de gerenciamento de roteiros, incluindo nomenclatura automática, auto-save, validação de arquivos e gerenciamento de filePath duplo.",
+    "status": "active",
+    "created_at": "2025-01-27T10:00:00Z",
+    "updated_at": "2025-01-27T10:00:00Z"
+  },
+  "plans": [
+    {
+      "id": "001-backend-validation",
+      "title": "Backend: Validação e Melhorias da API de Roteiros",
+      "agent": "backend-executor",
+      "target": "src/conductor-gateway",
+      "status": "pending",
+      "priority": 1,
+      "estimated_hours": 8,
+      "dependencies": [],
+      "plan_file": "playbook/001-backend-validation.md",
+      "checklist": [
+        {"id": "1.1", "content": "Analisar API atual de roteiros", "status": "pending"},
+        {"id": "1.2", "content": "Implementar validação de arquivos .md", "status": "pending"},
+        {"id": "1.3", "content": "Adicionar suporte a filePath duplo (importPath/exportPath)", "status": "pending"},
+        {"id": "1.4", "content": "Implementar detecção de duplicatas por path", "status": "pending"},
+        {"id": "1.5", "content": "Adicionar endpoint de renomeação", "status": "pending"},
+        {"id": "1.6", "content": "Criar testes unitários", "status": "pending"}
+      ]
+    },
+    {
+      "id": "002-frontend-core",
+      "title": "Frontend: Melhorias Core do Sistema de Roteiros",
+      "agent": "frontend-executor",
+      "target": "src/conductor-web",
+      "status": "pending",
+      "priority": 2,
+      "estimated_hours": 12,
+      "dependencies": ["001-backend-validation"],
+      "plan_file": "playbook/002-frontend-core.md",
+      "checklist": [
+        {"id": "2.1", "content": "Implementar nomenclatura automática com data", "status": "pending"},
+        {"id": "2.2", "content": "Adicionar auto-save inteligente", "status": "pending"},
+        {"id": "2.3", "content": "Melhorar gerenciamento de filePath duplo", "status": "pending"},
+        {"id": "2.4", "content": "Implementar validação de arquivos .md", "status": "pending"},
+        {"id": "2.5", "content": "Criar sistema de detecção de duplicatas", "status": "pending"},
+        {"id": "2.6", "content": "Implementar funcionalidade de renomeação", "status": "pending"}
+      ]
+    },
+    {
+      "id": "003-frontend-ui",
+      "title": "Frontend: Melhorias de Interface e UX",
+      "agent": "frontend-executor",
+      "target": "src/conductor-web",
+      "status": "pending",
+      "priority": 3,
+      "estimated_hours": 6,
+      "dependencies": ["002-frontend-core"],
+      "plan_file": "playbook/003-frontend-ui.md",
+      "checklist": [
+        {"id": "3.1", "content": "Melhorar modais de importação/exportação", "status": "pending"},
+        {"id": "3.2", "content": "Adicionar indicadores de filePath", "status": "pending"},
+        {"id": "3.3", "content": "Implementar feedback visual para auto-save", "status": "pending"},
+        {"id": "3.4", "content": "Criar notificações de conflitos", "status": "pending"}
+      ]
+    },
+    {
+      "id": "004-validation-tests",
+      "title": "Validação e Testes de Integração",
+      "agent": "qa-executor",
+      "target": "src",
+      "status": "pending",
+      "priority": 4,
+      "estimated_hours": 8,
+      "dependencies": ["001-backend-validation", "002-frontend-core", "003-frontend-ui"],
+      "plan_file": "playbook/004-validation-tests.md",
+      "checklist": [
+        {"id": "4.1", "content": "Testar todos os 3 fluxos de criação", "status": "pending"},
+        {"id": "4.2", "content": "Validar nomenclatura automática", "status": "pending"},
+        {"id": "4.3", "content": "Testar auto-save e transições", "status": "pending"},
+        {"id": "4.4", "content": "Validar gerenciamento de filePath", "status": "pending"},
+        {"id": "4.5", "content": "Testar detecção de duplicatas", "status": "pending"},
+        {"id": "4.6", "content": "Validar funcionalidade de renomeação", "status": "pending"}
+      ]
+    }
+  ],
+  "current_phase": "planning",
+  "next_action": "Aguardando aprovação do faseamento para iniciar execução"
+}
