@@ -9,7 +9,7 @@ server:
 conductor:
   project_path: "/app/src/conductor"
   scripts_path: "scripts"
-  timeout: 300
+  timeout: 600  # 10 minutes for long-running AI operations
   conductor_api_url: "http://conductor-api:8000"
 
 mongodb:
