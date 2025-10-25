@@ -1,0 +1,74 @@
+{
+  "sagaId": "saga-004",
+  "title": "Barra de Comandos Gamificada no Screenplay",
+  "owner": "Maestro",
+  "lastUpdated": "2025-10-24T00:00:00Z",
+  "phases": [
+    {
+      "id": "fase-1",
+      "title": "Estrutura e KPIs no Rodapé",
+      "status": "planned",
+      "checklist": [
+        "Barra inserida no editor-footer",
+        "KPIs exibidos no footer-right",
+        "Footer-left preservado (status de arquivo)",
+        "Atualização periódica dos KPIs"
+      ]
+    },
+    {
+      "id": "fase-2",
+      "title": "Feed de Eventos e Dinamismo",
+      "status": "planned",
+      "checklist": [
+        "EventTicker no footer-center",
+        "Eventos derivados de métricas/endpoints atuais",
+        "Polling/observables ~30s com backoff",
+        "Estado tolerante à falha"
+      ]
+    },
+    {
+      "id": "fase-3",
+      "title": "Interatividade, Modais e Notificações",
+      "status": "planned",
+      "checklist": [
+        "ReportModal funcional",
+        "Cliques do feed abrem modal",
+        "Badges/indicadores nos atalhos",
+        "Integração com serviço de métricas"
+      ]
+    }
+  ],
+  "v2": {
+    "phases": [
+      { "id": "v2.1", "title": "Layout Expansível", "doc": "docs/sagas/saga-004/fase-v2-1-layout-expansivel.md", "status": "planned" },
+      { "id": "v2.2", "title": "Personalização de Agentes", "doc": "docs/sagas/saga-004/fase-v2-2-personalizacao-agentes.md", "status": "planned" },
+      { "id": "v2.3", "title": "News Ticker Redesenhado", "doc": "docs/sagas/saga-004/fase-v2-3-news-ticker.md", "status": "planned" },
+      { "id": "v2.4", "title": "Sistema de Investigação", "doc": "docs/sagas/saga-004/fase-v2-4-investigacao.md", "status": "planned" },
+      { "id": "v2.5", "title": "Polish & Observabilidade", "doc": "docs/sagas/saga-004/fase-v2-5-polish-observabilidade.md", "status": "planned" }
+    ],
+    "dependencies": [
+      ["v2.1"],
+      ["v2.2"],
+      ["v2.1", "v2.2"],
+      ["v2.3"],
+      ["v2.1", "v2.2", "v2.3", "v2.4"]
+    ],
+    "parallel_groups": {
+      "A": ["v2.1", "v2.2"],
+      "B": ["v2.2", "v2.3"],
+      "C": ["v2.3", "v2.4"]
+    },
+    "gates": {
+      "gate1": "v2.1 critérios de transição e scroll",
+      "gate2": "v2.2 perfis persistentes e humanização",
+      "gate3": "v2.3 lista vertical com categorias",
+      "gate4": "v2.4 lançar investigação com KPI",
+      "final": "v2.5 telemetria + testes >= 70%"
+    }
+  },
+  "notes": [
+    "Testes e Docker fora de escopo das fases",
+    "Reutilizar estilos existentes para consistência visual",
+    "Cadência alinhada ao AgentGame (~30s)"
+  ]
+}
