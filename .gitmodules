@@ -7,3 +7,6 @@
 [submodule "src/conductor-web"]
 	path = src/conductor-web
 	url = https://github.com/primoia/conductor-web.git
+[submodule "src/conductor-crm"]
+	path = src/conductor-crm
+	url = https://github.com/primoia/conductor-crm.git
