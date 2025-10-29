@@ -7,12 +7,13 @@ services:
   #     MONGO_INITDB_ROOT_USERNAME: admin
   #     MONGO_INITDB_ROOT_PASSWORD: conductor123
   #     MONGO_INITDB_DATABASE: conductor
-  #   ports:
-  #     - "27017:27017"
+  #   # SECURITY: Port removed - only accessible via private-net
+  #   # ports:
+  #   #   - "27017:27017"
   #   volumes:
   #     - mongodb_data_dev:/data/db
   #   networks:
-  #     - conductor-dev-network
+  #     - private-net  # Only accessible from gateway
 
   conductor-api:
     build:
@@ -29,10 +30,11 @@ services:
     volumes:
       - ./src/conductor:/app
       - ./config/conductor/config.yaml:/app/config.yaml:ro
-    ports:
-      - "3000:8000"
+    # SECURITY: Port removed - only accessible via private-net
+    # ports:
+    #   - "3000:8000"
     networks:
-      - conductor-dev-network
+      - private-net  # Only accessible from gateway
 
   gateway:
     build:
@@ -54,7 +56,8 @@ services:
     ports:
       - "5006:8080"
     networks:
-      - conductor-dev-network
+      - public-net   # Public facing
+      - private-net  # Access to conductor-api and mongodb
 
   web:
     build:
@@ -69,12 +72,21 @@ services:
     ports:
       - "8080:80"
     networks:
-      - conductor-dev-network
+      - public-net  # Public facing
 
 volumes:
   mongodb_data_dev:
     driver: local
 
 networks:
-  conductor-dev-network:
+  # Public network - accessible from host and internet
+  # Services: gateway, web, portfolio-web (future)
+  public-net:
     driver: bridge
+
+  # Private network - internal only, not exposed to host
+  # Services: conductor-api, mongodb
+  # Only gateway has access to both networks
+  private-net:
+    driver: bridge
+    internal: true  # Blocks external access
