@@ -28,7 +28,7 @@ DEFAULT_POLL_INTERVAL="${POLL_INTERVAL:-1.0}"
 DEFAULT_LOG_FILE="${LOG_FILE:-./logs/watcher.log}"
 
 # Caminho para o script (relativo à raiz do monorepo)
-WATCHER_SCRIPT="src/conductor/poc/container_to_host/claude-mongo-watcher.py"
+WATCHER_SCRIPT="conductor/conductor/poc/container_to_host/claude-mongo-watcher.py"
 
 # Função para mostrar ajuda
 show_help() {

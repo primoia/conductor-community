@@ -55,9 +55,9 @@ Este repositório orquestra três projetos principais via submódulos Git:
 
 | Submódulo | Repositório | Descrição |
 |-----------|-------------|-----------|
-| `src/conductor/` | [primoia/conductor](https://github.com/primoia/conductor) | API principal do Conductor |
-| `src/conductor-gateway/` | [primoia/conductor-gateway](https://github.com/primoia/conductor-gateway) | Gateway de API |
-| `src/conductor-web/` | [primoia/conductor-web](https://github.com/primoia/conductor-web) | Interface web Angular |
+| `conductor/conductor/` | [primoia/conductor](https://github.com/primoia/conductor) | API principal do Conductor |
+| `conductor/conductor-gateway/` | [primoia/conductor-gateway](https://github.com/primoia/conductor-gateway) | Gateway de API |
+| `conductor/conductor-web/` | [primoia/conductor-web](https://github.com/primoia/conductor-web) | Interface web Angular |
 
 ### Fluxo de Desenvolvimento
 
@@ -77,14 +77,14 @@ Este repositório orquestra três projetos principais via submódulos Git:
 git submodule update --remote
 
 # Atualizar um submódulo específico
-git submodule update --remote src/conductor
+git submodule update --remote conductor/conductor
 ```
 
 #### Desenvolvendo em um Submódulo
 
 ```bash
 # Entre no diretório do submódulo
-cd src/conductor
+cd conductor/conductor
 
 # Crie uma branch para sua feature
 git checkout -b feature/nova-funcionalidade
@@ -100,7 +100,7 @@ git push origin feature/nova-funcionalidade
 cd ../..
 
 # Atualize a referência do submódulo
-git add src/conductor
+git add conductor/conductor
 git commit -m "chore: atualiza conductor para nova funcionalidade"
 ```
 
@@ -128,7 +128,7 @@ docker-compose -f docker-compose.dev.yml up --build conductor-api
 
 ```bash
 # Instale dependências em cada submódulo
-cd src/conductor && npm install
+cd conductor/conductor && npm install
 cd ../conductor-gateway && npm install
 cd ../conductor-web && npm install
 
@@ -137,13 +137,13 @@ cd ../conductor-web && npm install
 mongod
 
 # Terminal 2: Conductor API
-cd src/conductor && npm run dev
+cd conductor/conductor && npm run dev
 
 # Terminal 3: Gateway
-cd src/conductor-gateway && npm run dev
+cd conductor/conductor-gateway && npm run dev
 
 # Terminal 4: Web UI
-cd src/conductor-web && npm run start
+cd conductor/conductor-web && npm run start
 ```
 
 ## 🧪 Testes

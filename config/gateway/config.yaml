@@ -7,7 +7,7 @@ server:
   mcp_port: 8006
 
 conductor:
-  project_path: "/app/src/conductor"
+  project_path: "/app"
   scripts_path: "scripts"
   timeout: 600  # 10 minutes for long-running AI operations
   conductor_api_url: "http://conductor-api:8000"

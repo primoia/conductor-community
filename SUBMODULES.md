@@ -8,16 +8,16 @@ Para adicionar os submódulos ao repositório `conductor-community`, execute os 
 
 ```bash
 # Adicionar o submódulo do Conductor API
-git submodule add https://github.com/primoia/conductor.git src/conductor
+git submodule add https://github.com/primoia/conductor.git conductor/conductor
 
 # Adicionar o submódulo do Gateway
-git submodule add https://github.com/primoia/conductor-gateway.git src/conductor-gateway
+git submodule add https://github.com/primoia/conductor-gateway.git conductor/conductor-gateway
 
 # Adicionar o submódulo da Web UI
-git submodule add https://github.com/primoia/conductor-web.git src/conductor-web
+git submodule add https://github.com/primoia/conductor-web.git conductor/conductor-web
 
 # Fazer commit das mudanças
-git add .gitmodules src/
+git add .gitmodules conductor/
 git commit -m "chore: adiciona submódulos para desenvolvimento"
 ```
 
@@ -48,7 +48,7 @@ git submodule update --remote
 Para atualizar um submódulo específico:
 
 ```bash
-git submodule update --remote src/conductor
+git submodule update --remote conductor/conductor
 ```
 
 ## Trabalhando com Submódulos
@@ -57,7 +57,7 @@ git submodule update --remote src/conductor
 
 ```bash
 # Entrar no diretório do submódulo
-cd src/conductor
+cd conductor/conductor
 
 # Criar uma branch para sua feature
 git checkout -b feature/nova-funcionalidade
@@ -73,7 +73,7 @@ git push origin feature/nova-funcionalidade
 cd ../..
 
 # Atualizar a referência do submódulo
-git add src/conductor
+git add conductor/conductor
 git commit -m "chore: atualiza conductor para nova funcionalidade"
 ```
 
@@ -90,7 +90,7 @@ git submodule foreach git status
 ## Estrutura dos Submódulos
 
 ```
-src/
+conductor/
 ├── conductor/             # Submódulo: primoia/conductor
 │   ├── .git/             # Repositório Git do submódulo
 │   ├── src/              # Código-fonte da API
@@ -148,7 +148,7 @@ git submodule foreach git commit -m "chore: atualiza submódulo"
 git config --file .gitmodules --list
 
 # Atualizar URL se necessário
-git config --file .gitmodules submodule.src/conductor.url https://github.com/primoia/conductor.git
+git config --file .gitmodules submodule.conductor/conductor.url https://github.com/primoia/conductor.git
 ```
 
 ## Referências

@@ -79,7 +79,7 @@ conductor-community/
 │   └── gateway/
 │       └── gateway.env.example
 │
-└── src/                       # Source code via Git submodules
+└── conductor/                 # Source code via Git submodules
     ├── conductor/             # Submodule: primoia/conductor
     ├── conductor-gateway/     # Submodule: primoia/conductor-gateway
     └── conductor-web/         # Submodule: primoia/conductor-web
@@ -192,23 +192,23 @@ docker-compose -f docker-compose.dev.yml up --build conductor-api
 git submodule update --remote
 
 # Update a specific submodule
-git submodule update --remote src/conductor
+git submodule update --remote conductor/conductor
 
 # Commit in a submodule
-cd src/conductor
+cd conductor/conductor
 git add .
 git commit -m "feat: new feature"
 git push origin main
 cd ../..
-git add src/conductor
+git add conductor/conductor
 git commit -m "chore: update conductor submodule"
 ```
 
 ### Development Structure
 
-- **`src/conductor/`**: Main Conductor API
-- **`src/conductor-gateway/`**: API Gateway
-- **`src/conductor-web/`**: Angular web interface
+- **`conductor/conductor/`**: Main Conductor API
+- **`conductor/conductor-gateway/`**: API Gateway
+- **`conductor/conductor-web/`**: Angular web interface
 
 Each submodule is an independent Git repository that can be cloned and developed separately.
 

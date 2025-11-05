@@ -46,7 +46,7 @@ add_header Access-Control-Allow-Credentials "true";
 ### **1. Sistema de Autenticação JWT**
 
 ```python
-# src/conductor-gateway/src/auth/jwt_handler.py
+# conductor/conductor-gateway/src/auth/jwt_handler.py
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
@@ -84,7 +84,7 @@ class JWTHandler:
 ### **2. Middleware de Autenticação**
 
 ```python
-# src/conductor-gateway/src/middleware/auth_middleware.py
+# conductor/conductor-gateway/src/middleware/auth_middleware.py
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .jwt_handler import JWTHandler
@@ -118,7 +118,7 @@ async def execute_agent(
 ### **3. Validação e Sanitização Robusta**
 
 ```python
-# src/conductor-gateway/src/validation/input_validator.py
+# conductor/conductor-gateway/src/validation/input_validator.py
 import re
 import html
 from typing import Any, Dict
@@ -311,7 +311,7 @@ DEBUG=false
 ### **7. Logging de Segurança**
 
 ```python
-# src/conductor-gateway/src/logging/security_logger.py
+# conductor/conductor-gateway/src/logging/security_logger.py
 import logging
 import json
 from datetime import datetime
@@ -365,7 +365,7 @@ class SecurityLogger:
 ### **8. Rate Limiting**
 
 ```python
-# src/conductor-gateway/src/middleware/rate_limiter.py
+# conductor/conductor-gateway/src/middleware/rate_limiter.py
 from fastapi import HTTPException, Request
 import time
 from collections import defaultdict, deque

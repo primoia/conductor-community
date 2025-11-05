@@ -17,7 +17,7 @@ services:
 
   conductor-api:
     build:
-      context: ./src/conductor
+      context: ./conductor/conductor
       dockerfile: Dockerfile
     container_name: conductor-api-dev
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./src/conductor:/app
+      - ./conductor/conductor:/app
       - ./config/conductor/config.yaml:/app/config.yaml:ro
     # SECURITY: Port removed - only accessible via private-net
     # ports:
@@ -38,7 +38,7 @@ services:
 
   gateway:
     build:
-      context: ./src/conductor-gateway
+      context: ./conductor/conductor-gateway
       dockerfile: Dockerfile
     container_name: conductor-gateway-dev
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./config/gateway/config.yaml:/app/config.yaml:ro
-      - ./src/conductor-gateway/src:/app/src
+      - ./conductor/conductor-gateway/src:/app/src
     ports:
       - "5006:8080"
     networks:
@@ -61,7 +61,7 @@ services:
 
   web:
     build:
-      context: ./src/conductor-web
+      context: ./conductor/conductor-web
       dockerfile: Dockerfile.angular
     container_name: conductor-web-dev
     restart: unless-stopped

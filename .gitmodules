@@ -1,9 +1,9 @@
-[submodule "src/conductor"]
-	path = src/conductor
+[submodule "conductor/conductor"]
+	path = conductor/conductor
 	url = https://github.com/primoia/conductor.git
-[submodule "src/conductor-gateway"]
-	path = src/conductor-gateway
+[submodule "conductor/conductor-gateway"]
+	path = conductor/conductor-gateway
 	url = https://github.com/primoia/conductor-gateway.git
-[submodule "src/conductor-web"]
-	path = src/conductor-web
+[submodule "conductor/conductor-web"]
+	path = conductor/conductor-web
 	url = https://github.com/primoia/conductor-web.git
