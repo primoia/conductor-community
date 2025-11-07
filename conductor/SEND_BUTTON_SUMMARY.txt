@@ -1,0 +1,319 @@
+================================================================================
+CONDUCTOR-WEB SEND BUTTON - IMPLEMENTATION SUMMARY
+================================================================================
+
+QUESTION: Find the send button and understand its implementation
+ANSWER: Complete analysis provided in companion documents
+
+================================================================================
+1. COMPONENT FILE
+================================================================================
+
+FILE: /mnt/ramdisk/primoia-main/conductor-community/conductor/conductor-web/src/app/shared/conductor-chat/conductor-chat.component.ts
+
+SEND BUTTON HTML (Lines 357-366):
+  <button
+    class="icon-button send-button"
+    (click)="sendMessage()"
+    [disabled]="chatState.isLoading || isEditorEmpty()"
+    [title]="chatState.isLoading ? 'Enviando...' : 'Enviar mensagem'"
+  >
+    <span *ngIf="!chatState.isLoading">⬆️</span>
+    <span *ngIf="chatState.isLoading">⏳</span>
+  </button>
+
+================================================================================
+2. CLICK HANDLER METHOD: sendMessage()
+================================================================================
+
+LOCATION: Lines 1992-2009 in conductor-chat.component.ts
+
+PURPOSE: Direct handler when user clicks send button
+
+ACTIONS:
+  1. Validates message content not empty
+  2. Validates chat not currently loading
+  3. Extracts message and provider
+  4. Calls handleSendMessage()
+  5. Clears editor
+  6. Resets messageContent property
+
+================================================================================
+3. MESSAGE HANDLER: handleSendMessage()
+================================================================================
+
+LOCATION: Lines 2054-2149 in conductor-chat.component.ts
+
+PURPOSE: Orchestrates message sending with full validation and routing
+
+VALIDATIONS PERFORMED:
+  1. Message content not empty
+  2. Chat not loading
+  3. Input not blocked (requires working directory)
+  4. Agent selected (both instance ID and database ID)
+
+EXECUTION PATHS:
+  A. NEW MODEL (Conversation):
+     - Enabled when: environment.features?.useConversationModel
+     - Calls: messageHandlingService.sendMessageWithConversationModel()
+     - Behavior: Uses global backend conversations
+
+  B. LEGACY MODEL (Local History):
+     - Fallback when conversation model not enabled
+     - Calls: messageHandlingService.sendMessageWithLegacyModel()
+     - Behavior: Uses local message history per agent
+
+================================================================================
+4. USER INPUT CAPTURE
+================================================================================
+
+A. RICH TEXT EDITOR (TipTap with ProseMirror):
+   File: chat-input.component.ts
+   
+   Features:
+   - Rich text formatting (bold, italic, code)
+   - Markdown syntax support
+   - Code blocks with syntax highlighting
+   - Task lists
+   - Paste handling (HTML to Markdown conversion)
+   
+   Content Flow:
+   TipTap Editor
+     ↓ (onUpdate event)
+   messageContentChanged emitted
+     ↓ (captured by conductor-chat)
+   this.messageContent updated
+     ↓ (enterPressed event on Enter key)
+   sendMessage() called
+
+B. KEYBOARD SHORTCUTS:
+   - Enter (no modifiers): Send message
+   - Shift+Enter: New line in editor
+
+C. CONTENT BINDING:
+   Component property: messageContent
+   Updated by: onMessageContentChanged() method
+   Source: messageContentChanged event from chat-input component
+
+================================================================================
+5. MESSAGE HANDLING SERVICE
+================================================================================
+
+FILE: /mnt/ramdisk/primoia-main/conductor-community/conductor/conductor-web/src/app/shared/conductor-chat/services/message-handling.service.ts
+
+PURPOSE: Unifies message sending logic for both conversation and legacy models
+
+KEY METHODS:
+  - sendMessageWithConversationModel(params, callbacks)
+  - sendMessageWithLegacyModel(params, currentMessages, chatHistories, callbacks)
+
+CALLBACKS PROVIDED TO HANDLERS:
+  - onProgressUpdate: (message: string, instanceId: string) => void
+  - onStreamingUpdate: (chunk: string, instanceId: string) => void
+  - onLoadingChange: (isLoading: boolean) => void
+  - onMessagesUpdate: (messages: Message[]) => void
+  - onConversationReload: (conversationId: string) => void (optional)
+
+================================================================================
+6. API ENDPOINTS
+================================================================================
+
+PRIMARY ENDPOINT (AgentService):
+
+Start Execution:
+  POST /api/v1/stream-execute
+  
+  Request Body:
+  {
+    "agent_id": "string",
+    "instance_id": "string",
+    "conversation_id": "string (optional)",
+    "screenplay_id": "string (optional)",
+    "cwd": "string (default: /app)",
+    "ai_provider": "string (default: claude)",
+    "context_mode": "stateless",
+    "textEntries": [
+      {
+        "uid": "1",
+        "content": "user message text"
+      }
+    ]
+  }
+
+Stream Response:
+  GET /api/v1/stream/{job_id}
+  
+  Connection Type: Server-Sent Events (EventSource)
+  
+  Event Types:
+  - task_started: Execution started
+  - status_update: Progress update
+  - result: Final result received
+  - error: Error occurred
+  - end_of_stream: Stream complete
+
+SERVICE FILE: AgentService (agent.service.ts)
+METHOD: executeAgentViaSSE() at line 477-575
+
+================================================================================
+7. KEY PROPERTIES AND STATE
+================================================================================
+
+Chat State:
+  messageContent: string          // Current user input
+  chatState.isLoading: boolean    // Is message being processed
+  chatState.messages: Message[]   // All messages in conversation
+  chatState.isConnected: boolean  // Backend connection status
+
+Agent Context:
+  activeAgentId: string           // Instance ID
+  selectedAgentDbId: string       // Database ID
+  selectedAgentName: string       // Display name
+  selectedAgentEmoji: string      // Icon emoji
+  activeAgentCwd: string          // Working directory
+  activeConversationId: string    // Global conversation ID
+  activeScreenplayId: string      // Document/screenplay ID
+
+UI State:
+  selectedProvider: string        // AI provider selection (claude, gemini, etc.)
+  isRecording: boolean            // Voice recording state
+  currentMode: ChatMode           // 'ask' or 'agent' mode
+
+================================================================================
+8. DATA FLOW DIAGRAM
+================================================================================
+
+User Input Flow:
+  User types in editor
+    ↓
+  TipTap onUpdate event
+    ↓
+  messageContentChanged emitted
+    ↓
+  conductor-chat updates messageContent
+    ↓
+  User clicks button or presses Enter
+    ↓
+  sendMessage() called
+    ↓
+  handleSendMessage() called
+    ↓
+  MessageParams created with full context
+    ↓
+  Feature flag check (conversation vs legacy)
+    ↓
+  MessageHandlingService.sendMessage...() called
+    ↓
+  AgentService.executeAgent() called
+    ↓
+  executeAgentViaSSE() opens connections
+    ↓
+  POST /api/v1/stream-execute (get job_id)
+    ↓
+  EventSource /api/v1/stream/{job_id}
+    ↓
+  SSE events processed and parsed
+    ↓
+  UI callbacks triggered (onProgressUpdate, onLoadingChange, etc.)
+    ↓
+  Message history updated
+    ↓
+  Loading state cleared
+    ↓
+  Complete
+
+================================================================================
+9. VALIDATION FLOW
+================================================================================
+
+Before message is sent, these checks occur:
+
+1. sendMessage():
+   if (!this.messageContent.trim() || this.chatState.isLoading) return;
+
+2. handleSendMessage():
+   if (!data.message.trim() || this.chatState.isLoading) return;
+   if (this.isInputBlocked()) return;  // Requires working directory
+   if (!this.activeAgentId || !this.selectedAgentDbId) return;  // Agent required
+
+3. Button state:
+   [disabled]="chatState.isLoading || isEditorEmpty()"
+
+================================================================================
+10. RELATED FILES
+================================================================================
+
+COMPONENT FILES:
+  - conductor-chat.component.ts (main chat component)
+  - chat-input.component.ts (TipTap editor)
+  - chat-messages.component.ts (message display)
+  - status-indicator.component.ts (connection status)
+
+SERVICE FILES:
+  - message-handling.service.ts (send orchestration)
+  - agent.service.ts (agent execution, SSE)
+  - conductor-api.service.ts (legacy API service)
+  - conversation.service.ts (conversation backend API)
+
+MODEL FILES:
+  - chat.models.ts (TypeScript interfaces)
+
+================================================================================
+11. CURRENT IMPLEMENTATION CHARACTERISTICS
+================================================================================
+
+STRENGTHS:
+  + Two code paths allow migration from legacy to new model
+  + Rich text editor with markdown support
+  + Proper validation and error handling
+  + Callback-based architecture for UI updates
+  + SSE for streaming responses
+  + Flexible response format handling (handles multiple backend formats)
+  + Comprehensive logging for debugging
+  + Keyboard shortcut support
+
+AREAS FOR IMPROVEMENT:
+  - Code duplication between conversation and legacy models
+  - Direct fetch() usage instead of Angular HttpClient (no interceptors)
+  - Manual error handling (could use centralized handler)
+  - Message format limited to text entries (no attachments)
+  - Legacy code path might be removable
+
+================================================================================
+12. SUPPORTING DOCUMENTATION
+================================================================================
+
+Two additional documents provided:
+
+1. SEND_BUTTON_ANALYSIS.md
+   - Detailed 13-section analysis
+   - Complete code listings
+   - Data flow diagrams
+   - Testing checklist
+   - Change preparation notes
+
+2. SEND_BUTTON_CODE_REFERENCE.md
+   - Quick code snippets
+   - File location map
+   - Key variables
+   - Message flow summary
+   - API response handling details
+
+================================================================================
+13. NEXT STEPS FOR CHANGE PROPOSAL
+================================================================================
+
+To propose changes to the send button:
+
+1. Review SEND_BUTTON_ANALYSIS.md for complete implementation details
+2. Review SEND_BUTTON_CODE_REFERENCE.md for code snippets and examples
+3. Identify which components/services need modification:
+   - sendMessage() or handleSendMessage() for behavior changes
+   - chat-input.component.ts for editor changes
+   - message-handling.service.ts for send logic changes
+   - agent.service.ts for API changes
+4. Consider both execution paths (conversation and legacy models)
+5. Plan test cases using the provided testing checklist
+6. Document impact on keyboard shortcuts, button state, and UI feedback
+
+================================================================================
