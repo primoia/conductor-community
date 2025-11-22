@@ -1,19 +1,20 @@
 services:
-  # mongodb:
-  #   image: mongo:7.0
-  #   container_name: conductor-mongodb-dev
-  #   restart: unless-stopped
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: admin
-  #     MONGO_INITDB_ROOT_PASSWORD: conductor123
-  #     MONGO_INITDB_DATABASE: conductor
-  #   # SECURITY: Port removed - only accessible via private-net
-  #   # ports:
-  #   #   - "27017:27017"
-  #   volumes:
-  #     - mongodb_data_dev:/data/db
-  #   networks:
-  #     - private-net  # Only accessible from gateway
+  mongodb:
+    image: mongo:latest
+    container_name: conductor-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: czrimr
+      MONGO_INITDB_DATABASE: conductor
+    # DEV: Port exposed for local development (Compass access)
+    ports:
+      - "27017:27017"
+    volumes:
+      - /home/cezar/Workspace/mongo/data:/data/db
+    networks:
+      - public-net   # Needed for localhost port binding
+      - private-net  # Accessible from gateway and conductor-api
 
   conductor-api:
     build:
@@ -43,6 +44,7 @@ services:
     container_name: conductor-gateway-dev
     restart: unless-stopped
     depends_on:
+      - mongodb
       - conductor-api
     env_file:
       - ./config/gateway/.env

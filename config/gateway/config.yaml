@@ -13,7 +13,7 @@ conductor:
   conductor_api_url: "http://conductor-api:8000"
 
 mongodb:
-  url: mongodb://admin:czrimr@host.docker.internal:27017/conductor?authSource=admin
+  url: mongodb://admin:czrimr@mongodb:27017/conductor?authSource=admin
   database: "conductor_state"
 
 # Environment variables will override these values if set
