@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  conductor-api:
+    image: primoia/conductor:latest
+    container_name: conductor-api
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=conductor123
+      - MONGO_INITDB_DATABASE=conductor
+    env_file:
+      - ./config/conductor/.env
+    volumes:
+      - ./config/conductor/config.yaml:/app/config.yaml:ro
+    ports:
+      - "3000:8000"
+    networks:
+      - primoia-network
+    extra_hosts:
+      - "primoia-mongodb:host-gateway"
+
+  gateway:
+    image: primoia/conductor-gateway:latest
+    container_name: conductor-gateway
+    restart: unless-stopped
+    environment:
+      - CONDUCTOR_API_URL=http://conductor-api:8000
+    env_file:
+      - ./config/gateway/.env
+    volumes:
+      - ./config/gateway/config.yaml:/app/config.yaml:ro
+    ports:
+      - "5006:8080"
+    depends_on:
+      - conductor-api
+    networks:
+      - primoia-network
+
+  web:
+    image: primoia/conductor-web:latest
+    container_name: conductor-web
+    restart: unless-stopped
+    environment:
+      - CONDUCTOR_GATEWAY_URL=http://gateway:8080
+    ports:
+      - "8080:80"
+    depends_on:
+      - gateway
+    networks:
+      - primoia-network
+
+networks:
+  primoia-network:
+    driver: bridge
+
+# Note: This docker-compose file connects to centralized infrastructure:
+# - MongoDB: primoia-mongodb (if using centralized MongoDB instance)
+# - Conductor services communicate through internal Docker network
+#
+# The local MongoDB service has been removed from this configuration.
+# You can optionally mount to a centralized MongoDB if available,
+# or use the standalone MongoDB setup in the original docker-compose.yml
+#
+# Environment files required:
+# - ./config/conductor/.env
+# - ./config/gateway/.env
