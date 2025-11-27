@@ -18,16 +18,17 @@ services:
     image: primoia/conductor:latest
     container_name: conductor-api
     restart: unless-stopped
-    depends_on:
-      - mongodb
+    # depends_on:
+    #   - mongodb  # Using external primoia-shared-mongo instead
     env_file:
       - ./config/conductor/.env
     volumes:
       - ./config/conductor/config.yaml:/app/config.yaml:ro
     ports:
-      - "3000:8000"
+      - "8000:8000"
     networks:
       - conductor-network
+      - primoia-shared-infrastructure_primoia-infra-net
 
   gateway:
     image: primoia/conductor-gateway:latest
@@ -43,6 +44,7 @@ services:
       - "5006:8080"
     networks:
       - conductor-network
+      - primoia-shared-infrastructure_primoia-infra-net
 
   web:
     image: primoia/conductor-web:latest
@@ -62,3 +64,5 @@ volumes:
 networks:
   conductor-network:
     driver: bridge
+  primoia-shared-infrastructure_primoia-infra-net:
+    external: true

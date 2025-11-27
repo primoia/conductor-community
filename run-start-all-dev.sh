@@ -8,7 +8,33 @@ set -e
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m'
+
+# Parse arguments
+NO_CACHE=""
+FORCE_RECREATE=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --fresh|--no-cache)
+            NO_CACHE="--no-cache"
+            FORCE_RECREATE="--force-recreate"
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --fresh, --no-cache  Rebuild all images without Docker cache"
+            echo "  --help, -h           Show this help"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            exit 1
+            ;;
+    esac
+done
 
 echo ""
 echo -e "${BLUE}════════════════════════════════════════${NC}"
@@ -27,10 +53,18 @@ echo ""
 
 # 2. Subir Docker Stack
 echo -e "${BLUE}2️⃣  Iniciando Docker Stack (dev)...${NC}"
-echo -e "${YELLOW}   Isso pode levar alguns minutos...${NC}"
+if [[ -n "$NO_CACHE" ]]; then
+    echo -e "${YELLOW}   🔄 Modo --fresh: Rebuild completo SEM cache...${NC}"
+else
+    echo -e "${YELLOW}   Isso pode levar alguns minutos...${NC}"
+fi
 echo ""
 
-docker compose -f docker-compose.dev.yml up -d --build
+# Build com ou sem cache
+if [[ -n "$NO_CACHE" ]]; then
+    docker compose -f docker-compose.dev.yml build $NO_CACHE
+fi
+docker compose -f docker-compose.dev.yml up -d --build $FORCE_RECREATE
 
 echo ""
 echo -e "${GREEN}✓ Docker Stack iniciada${NC}"
@@ -72,5 +106,6 @@ echo -e "${BLUE}📝 Comandos úteis:${NC}"
 echo "  • Ver logs watcher:  ./run-watcher.sh -t"
 echo "  • Ver logs docker:   docker compose -f docker-compose.dev.yml logs -f"
 echo "  • Parar tudo:        ./run-stop-all-dev.sh"
+echo "  • Rebuild sem cache: ./run-start-all-dev.sh --fresh"
 echo ""
 

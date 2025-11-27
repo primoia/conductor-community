@@ -16,8 +16,8 @@ NC='\033[0m' # No Color
 CONFIG_YAML="config/gateway/config.yaml"
 if [ -f "$CONFIG_YAML" ]; then
     # Extrair MongoDB URL e database do YAML
-    # Substitui host.docker.internal e mongodb (hostname Docker) por localhost
-    YAML_MONGO_URL=$(grep -A 2 "^mongodb:" "$CONFIG_YAML" | grep "url:" | sed 's/.*url: *"\?\([^"]*\)"\?/\1/' | sed 's/host\.docker\.internal/localhost/g' | sed 's/@mongodb:/@localhost:/g')
+    # Substitui hostnames Docker por localhost (para rodar no host)
+    YAML_MONGO_URL=$(grep -A 2 "^mongodb:" "$CONFIG_YAML" | grep "url:" | sed 's/.*url: *"\?\([^"]*\)"\?/\1/' | sed 's/host\.docker\.internal/localhost/g' | sed 's/@mongodb:/@localhost:/g' | sed 's/@primoia-shared-mongo:/@localhost:/g')
     YAML_MONGO_DB=$(grep -A 2 "^mongodb:" "$CONFIG_YAML" | grep "database:" | sed 's/.*database: *"\?\([^"]*\)"\?/\1/')
 fi
 

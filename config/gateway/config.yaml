@@ -14,7 +14,7 @@ conductor:
 
 mongodb:
   url: mongodb://admin:czrimr@primoia-shared-mongo:27017/conductor_state?authSource=admin
-  database: "conductor_state"
+  database: conductor_state
 
 # Environment variables will override these values if set
 # Example: PORT environment variable will override server.port
