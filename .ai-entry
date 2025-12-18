@@ -1,0 +1,11 @@
+# AI Entry Point
+architecture: ../AI_ARCHITECTURE.md
+category: conductor
+purpose: Motor central de IA - gateway, workflows, scripts
+ports:
+  - gateway: 5006
+  - web: 8080
+  - api: 8000
+depends_on:
+  - primoia-shared-infrastructure
+critical: true

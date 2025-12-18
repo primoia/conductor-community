@@ -1,3 +1,9 @@
+# =============================================================
+# AI: Arquitetura completa em ../AI_ARCHITECTURE.md
+# MOTOR CENTRAL DE IA - roda UMA vez para todo o ecossistema
+# Verticais consomem via API (nunca duplicar!)
+# Portas: gateway:5006, web:8080, api:8000
+# =============================================================
 services:
   # MongoDB: Usando primoia-shared-mongo da infraestrutura compartilhada
   # Acesse via: mongodb://admin:czrimr@primoia-shared-mongo:27017/?authSource=admin

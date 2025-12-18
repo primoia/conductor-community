@@ -1,5 +1,8 @@
 # Conductor Community
 
+> **Para IAs**: Arquitetura completa do monorepo em [../AI_ARCHITECTURE.md](../AI_ARCHITECTURE.md)
+> **IMPORTANTE**: Este é o MOTOR CENTRAL de IA - roda UMA vez, verticais consomem via API
+
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Community](https://img.shields.io/badge/Community-Welcome-orange.svg)](CONTRIBUTING.md)

@@ -1,3 +1,8 @@
+# =============================================================
+# AI: Arquitetura completa em ../AI_ARCHITECTURE.md
+# MOTOR CENTRAL DE IA - roda UMA vez para todo o ecossistema
+# Verticais consomem via API (nunca duplicar!)
+# =============================================================
 services:
   mongodb:
     image: mongo:7.0
