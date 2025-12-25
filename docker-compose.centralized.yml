@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   conductor-api:
-    image: primoia/conductor:latest
+    build:
+      context: ./conductor/conductor
+      dockerfile: Dockerfile
     container_name: conductor-api
     restart: unless-stopped
     environment:
@@ -17,11 +19,14 @@ services:
       - "3000:8000"
     networks:
       - primoia-network
+      - primoia-shared-infrastructure_primoia-infra-net
     extra_hosts:
       - "primoia-mongodb:host-gateway"
 
   gateway:
-    image: primoia/conductor-gateway:latest
+    build:
+      context: ./conductor/conductor-gateway
+      dockerfile: Dockerfile
     container_name: conductor-gateway
     restart: unless-stopped
     environment:
@@ -36,9 +41,12 @@ services:
       - conductor-api
     networks:
       - primoia-network
+      - primoia-shared-infrastructure_primoia-infra-net
 
   web:
-    image: primoia/conductor-web:latest
+    build:
+      context: ./conductor/conductor-web
+      dockerfile: Dockerfile.angular
     container_name: conductor-web
     restart: unless-stopped
     environment:
@@ -53,6 +61,8 @@ services:
 networks:
   primoia-network:
     driver: bridge
+  primoia-shared-infrastructure_primoia-infra-net:
+    external: true
 
 # Note: This docker-compose file connects to centralized infrastructure:
 # - MongoDB: primoia-mongodb (if using centralized MongoDB instance)
