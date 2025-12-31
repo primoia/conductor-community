@@ -1,78 +1,62 @@
 version: '3.8'
-
 services:
-  conductor-api:
+  community-conductor-api:
     build:
       context: ./conductor/conductor
       dockerfile: Dockerfile
-    container_name: conductor-api
+    container_name: community-conductor-api
     restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=conductor123
-      - MONGO_INITDB_DATABASE=conductor
+    - MONGO_INITDB_ROOT_USERNAME=admin
+    - MONGO_INITDB_ROOT_PASSWORD=conductor123
+    - MONGO_INITDB_DATABASE=conductor
     env_file:
-      - ./config/conductor/.env
+    - ./config/conductor/.env
     volumes:
-      - ./config/conductor/config.yaml:/app/config.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # Para descoberta de MCP sidecars
+    - ./config/conductor/config.yaml:/app/config.yaml:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
-      - "3000:8000"
+    - 12199:8000
     networks:
-      - primoia-network
-      - primoia-shared-infrastructure_primoia-infra-net
+    - primoia-network
+    - primoia-shared-infrastructure_primoia-infra-net
     extra_hosts:
-      - "primoia-mongodb:host-gateway"
-
-  gateway:
+    - primoia-mongodb:host-gateway
+  community-conductor-mcp:
     build:
       context: ./conductor/conductor-gateway
       dockerfile: Dockerfile
-    container_name: conductor-gateway
+    container_name: community-conductor-mcp
     restart: unless-stopped
     environment:
-      - CONDUCTOR_API_URL=http://conductor-api:8000
+    - CONDUCTOR_API_URL=http://community-conductor-api:8000
     env_file:
-      - ./config/gateway/.env
+    - ./config/gateway/.env
     volumes:
-      - ./config/gateway/config.yaml:/app/config.yaml:ro
+    - ./config/gateway/config.yaml:/app/config.yaml:ro
     ports:
-      - "5006:8080"
+    - 13199:8080
     depends_on:
-      - conductor-api
+    - community-conductor-api
     networks:
-      - primoia-network
-      - primoia-shared-infrastructure_primoia-infra-net
-
-  web:
+    - primoia-network
+    - primoia-shared-infrastructure_primoia-infra-net
+  community-conductor-web:
     build:
       context: ./conductor/conductor-web
       dockerfile: Dockerfile.angular
-    container_name: conductor-web
+    container_name: community-conductor-web
     restart: unless-stopped
-    environment:
-      - CONDUCTOR_GATEWAY_URL=http://gateway:8080
+    volumes:
+    - ./config/web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "8080:80"
+    - 11299:80
     depends_on:
-      - gateway
+    - community-conductor-mcp
     networks:
-      - primoia-network
-
+    - primoia-network
 networks:
   primoia-network:
     driver: bridge
   primoia-shared-infrastructure_primoia-infra-net:
     external: true
-
-# Note: This docker-compose file connects to centralized infrastructure:
-# - MongoDB: primoia-mongodb (if using centralized MongoDB instance)
-# - Conductor services communicate through internal Docker network
-#
-# The local MongoDB service has been removed from this configuration.
-# You can optionally mount to a centralized MongoDB if available,
-# or use the standalone MongoDB setup in the original docker-compose.yml
-#
-# Environment files required:
-# - ./config/conductor/.env
-# - ./config/gateway/.env
