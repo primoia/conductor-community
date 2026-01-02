@@ -32,6 +32,54 @@ logger = logging.getLogger(__name__)
 DEFAULT_BASE_PATH = "/mnt/ramdisk/primoia-main/primoia"
 
 
+def get_env_value(env, key: str) -> Optional[str]:
+    """Extrai valor de uma variável de ambiente (lista ou dict)."""
+    if isinstance(env, list):
+        for e in env:
+            if isinstance(e, str) and e.startswith(f"{key}="):
+                return e.split("=", 1)[1]
+    elif isinstance(env, dict):
+        return env.get(key)
+    return None
+
+
+def get_host_port(ports: list) -> Optional[str]:
+    """Extrai a porta host de uma lista de port mappings."""
+    for port in ports:
+        if isinstance(port, str) and ":" in port:
+            return port.split(":")[0]
+        elif isinstance(port, int):
+            return str(port)
+    return None
+
+
+def find_backend_host_port(services: dict, target_url: str) -> Optional[str]:
+    """
+    Encontra a porta host do backend API baseado no TARGET_URL.
+
+    TARGET_URL: http://billing-billing-api:8000
+    Procura o serviço billing-billing-api e retorna sua porta host.
+    """
+    if not target_url:
+        return None
+
+    # Extrair nome do serviço do TARGET_URL (ex: http://billing-billing-api:8000 -> billing-billing-api)
+    try:
+        # Remove http:// e pega só o host:port
+        host_part = target_url.replace("http://", "").replace("https://", "")
+        backend_service_name = host_part.split(":")[0]
+    except:
+        return None
+
+    # Procurar o serviço no compose
+    for svc_name, svc_config in services.items():
+        if svc_name == backend_service_name:
+            ports = svc_config.get("ports", [])
+            return get_host_port(ports)
+
+    return None
+
+
 def discover_mcps(base_path: str = DEFAULT_BASE_PATH) -> List[Dict]:
     """
     Descobre MCPs a partir dos docker-compose.centralized.yml files.
@@ -67,36 +115,27 @@ def discover_mcps(base_path: str = DEFAULT_BASE_PATH) -> List[Dict]:
                     continue
 
                 ports = service_config.get("ports", [])
-
-                # Extrair port mapping do docker-compose.centralized.yml
-                # Formato: "13145:9000" (host:container)
-                host_port = None
-                internal_port = "9000"  # Porta padrão MCP
-
-                for port in ports:
-                    if isinstance(port, str) and ":" in port:
-                        parts = port.split(":")
-                        host_port = parts[0]
-                        internal_port = parts[1] if len(parts) > 1 else "9000"
-                        break
-                    elif isinstance(port, int):
-                        host_port = str(port)
-
-                # Extrair nome base do MCP_NAME do environment ou do service_name
                 env = service_config.get("environment", [])
-                mcp_name = None
 
-                if isinstance(env, list):
-                    for e in env:
-                        if isinstance(e, str) and e.startswith("MCP_NAME="):
-                            mcp_name = e.split("=")[1]
-                            break
-                elif isinstance(env, dict):
-                    mcp_name = env.get("MCP_NAME")
+                # Extrair port mapping do MCP
+                # Formato: "13145:9000" (host:container)
+                host_port = get_host_port(ports)
+                internal_port = "9000"  # Porta padrão MCP
+                if ports and isinstance(ports[0], str) and ":" in ports[0]:
+                    internal_port = ports[0].split(":")[1]
 
+                # Extrair MCP_NAME do environment ou fallback do service_name
+                mcp_name = get_env_value(env, "MCP_NAME")
                 if not mcp_name:
                     # Fallback: extrair do nome do serviço
                     mcp_name = service_name.replace("-mcp", "").replace("verticals-", "").replace("billing-", "")
+
+                # Extrair TARGET_URL (URL interna do backend)
+                target_url = get_env_value(env, "TARGET_URL")
+
+                # Encontrar porta host do backend API
+                backend_host_port = find_backend_host_port(services, target_url)
+                backend_url = f"http://localhost:{backend_host_port}" if backend_host_port else None
 
                 # Caminho relativo ao base_path
                 try:
@@ -104,21 +143,36 @@ def discover_mcps(base_path: str = DEFAULT_BASE_PATH) -> List[Dict]:
                 except ValueError:
                     relative_path = str(compose_file)
 
-                # Extrair auth se configurado
-                auth = None
-                if isinstance(env, list):
-                    for e in env:
-                        if isinstance(e, str) and e.startswith("MCP_AUTH="):
-                            auth = e.split("=", 1)[1]
-                            break
-                elif isinstance(env, dict):
-                    auth = env.get("MCP_AUTH")
+                # Extrair MCP_AUTH se configurado, ou usar padrão se IAM habilitado
+                auth = get_env_value(env, "MCP_AUTH")
+
+                # Verificar se IAM está habilitado
+                # O sidecar tem default ENABLE_IAM=true, então:
+                # - Se ENABLE_IAM ou IAM_ENABLED = "false" -> desabilitado
+                # - Se IAM_URL está configurado -> habilitado
+                # - Se nenhum config de IAM -> assume habilitado (default do sidecar)
+                enable_iam_val = get_env_value(env, "ENABLE_IAM") or get_env_value(env, "IAM_ENABLED")
+                iam_url = get_env_value(env, "IAM_URL")
+
+                iam_enabled = True  # Default do sidecar é true
+                if enable_iam_val:
+                    enable_iam_str = str(enable_iam_val).lower().strip("'\"")
+                    # Desabilitado apenas se explicitamente "false" ou "0"
+                    if enable_iam_str in ("false", "0"):
+                        iam_enabled = False
+                    elif "true" in enable_iam_str or enable_iam_str == "1":
+                        iam_enabled = True
+
+                # Se IAM habilitado e sem auth explícito, usar auth padrão
+                if not auth and iam_enabled:
+                    auth = "YWRtaW46QWRtaW5AMTIzNDU2"  # admin:Admin@123456
 
                 mcp_entry = {
                     "name": mcp_name,
                     "type": "external",
                     "url": f"http://{service_name}:{internal_port}/sse",
                     "host_url": f"http://localhost:{host_port}/sse" if host_port else None,
+                    "backend_url": backend_url,
                     "docker_compose_path": relative_path,
                     "status": "stopped",  # Todos começam parados (on-demand)
                     "auto_shutdown_minutes": 30,
@@ -128,12 +182,13 @@ def discover_mcps(base_path: str = DEFAULT_BASE_PATH) -> List[Dict]:
                         "category": categorize_service(str(compose_file)),
                         "description": f"MCP for {mcp_name}",
                         "service_name": service_name,
+                        "target_url": target_url,
                         "discovered_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
 
                 mcps.append(mcp_entry)
-                logger.info(f"  Descoberto: {mcp_name} -> localhost:{host_port}")
+                logger.info(f"  Descoberto: {mcp_name} -> localhost:{host_port} (backend: {backend_url})")
 
         except Exception as e:
             logger.warning(f"Erro ao processar {compose_file}: {e}")
@@ -223,12 +278,21 @@ def register_mcps(
                 if existing:
                     # Atualizar campos de on-demand (preservar campos existentes)
                     update_fields = {
+                        "url": mcp["url"],
                         "host_url": mcp["host_url"],
                         "docker_compose_path": mcp["docker_compose_path"],
                         "auto_shutdown_minutes": mcp["auto_shutdown_minutes"],
                         "metadata": mcp["metadata"],
                         "updated_at": datetime.now(timezone.utc)
                     }
+
+                    # Atualizar backend_url se descoberto
+                    if mcp.get("backend_url"):
+                        update_fields["backend_url"] = mcp["backend_url"]
+
+                    # Atualizar auth se descoberto (não sobrescrever com None)
+                    if mcp.get("auth"):
+                        update_fields["auth"] = mcp["auth"]
 
                     # Não sobrescrever status se já estiver healthy
                     if existing.get("status") not in ["healthy", "starting"]:
