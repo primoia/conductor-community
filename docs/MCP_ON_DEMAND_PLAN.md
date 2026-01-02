@@ -98,10 +98,12 @@ services/
 
 O sistema possui descoberta automática de MCPs implementada em:
 
-- **conductor**: `src/infrastructure/discovery_service.py`
-- **conductor**: `src/api/routes/system.py` → endpoint `/api/system/mcp/sidecars`
+- **conductor**: `conductor/src/infrastructure/discovery_service.py`
+- **conductor**: `conductor/src/api/routes/system.py` → endpoint `/api/system/mcp/sidecars`
 
 Essa descoberta funciona via scan de containers Docker rodando, identificando MCPs pela porta ou nome.
+
+**IMPORTANTE:** Este mecanismo de scan deve ser **removido** em favor do `mcp_registry` do Gateway.
 
 ### 3.2 Conflito com On-Demand
 
@@ -113,28 +115,23 @@ A descoberta automática **conflita** com a abordagem on-demand porque:
 | Atualiza status baseado em containers ativos | Status controlado pelo Watcher |
 | Pode sobrescrever `status: stopped` | Watcher gerencia transições de status |
 
-### 3.3 Ações Necessárias
+### 3.3 Ação Necessária
 
-**Opção A: Desativar descoberta automática**
+**Decisão: Remover descoberta automática completamente**
 
-1. Remover ou comentar a lógica de scan em `discovery_service.py`
-2. Endpoint `/api/system/mcp/sidecars` passa a ler do `mcp_registry` em vez de scanear
-
-**Opção B: Modificar descoberta para coexistir**
-
-1. Descoberta automática apenas **atualiza** MCPs existentes no registry
-2. Não cria novos MCPs automaticamente
-3. Não sobrescreve campos de on-demand (`status`, `shutdown_after`)
-
-**Recomendação:** Opção A (desativar) é mais simples e evita conflitos.
+1. **Remover** a lógica de scan em `discovery_service.py`
+2. **Remover** o endpoint `/api/system/mcp/sidecars` (não será mais usado)
+3. **Frontend** deve usar `/mcp/list` do Gateway (endpoint já existe!)
 
 ### 3.4 Arquivos Afetados
 
 | Arquivo | Ação |
 |---------|------|
-| `conductor/src/infrastructure/discovery_service.py` | Remover `scan_network()` ou similar |
-| `conductor/src/api/routes/system.py` | Endpoint `/mcp/sidecars` lê do registry |
-| `conductor-web/src/app/services/agent.service.ts` | Já planejado: mudar para `/mcp/list` do Gateway |
+| `conductor/conductor/src/infrastructure/discovery_service.py` | **REMOVER** arquivo ou lógica de `scan_network()` |
+| `conductor/conductor/src/api/routes/system.py` | **REMOVER** endpoint `/mcp/sidecars` |
+| `conductor-web/src/app/services/agent.service.ts` | Mudar `getAvailableSidecars()` para usar `/mcp/list` do Gateway |
+
+**Nota:** O endpoint `/mcp/list` do Gateway já existe e retorna todos os MCPs do `mcp_registry`, incluindo os parados.
 
 ### 3.5 Migração
 
@@ -218,10 +215,16 @@ class MCPRegistryEntry(BaseModel):
 
 **Arquivo:** `conductor/poc/container_to_host/mcp_container_service.py` (NOVO)
 
+**IMPORTANTE:** Esta é a classe central do sistema on-demand. Ela é responsável por:
+1. Verificar se MCPs estão rodando (health check)
+2. Iniciar MCPs parados (docker-compose up)
+3. Atualizar status no `mcp_registry`
+
 ```python
 import os
 import subprocess
 import logging
+import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict
 from pymongo.database import Database
@@ -229,35 +232,90 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# Caminho base onde estão os docker-compose files
+BASE_PATH = "/mnt/ramdisk/primoia-main/primoia"
+
 class MCPContainerService:
     """
     Serviço para gerenciar ciclo de vida de containers MCP.
     Roda no host, tem acesso direto ao Docker.
+
+    TODOS os MCPs são on-demand. Não há MCPs "sempre ligados".
     """
 
     def __init__(self, db: Database, default_shutdown_minutes: int = 30):
         self.db = db
         self.mcp_registry = db["mcp_registry"]
+        self.agents = db["agents"]
+        self.agent_instances = db["agent_instances"]
         self.default_shutdown_minutes = default_shutdown_minutes
+        self.base_path = BASE_PATH
 
     def ensure_running(self, mcp_name: str, timeout: int = 60) -> bool:
         """
-        Garante que um MCP está rodando.
+        Garante que um MCP está rodando. Fluxo completo:
 
-        1. Busca MCP no registry
-        2. Verifica health
-        3. Se não healthy, executa docker-compose up
-        4. Aguarda health check
-        5. Atualiza timestamps
+        1. Busca MCP no mcp_registry
+        2. Faz health check via host_url
+        3. Se healthy → atualiza timestamps e retorna True
+        4. Se não healthy → executa docker-compose up -d
+        5. Aguarda health check passar (retry com timeout)
+        6. Atualiza status para 'healthy' e timestamps
+        7. Retorna True se conseguiu, False se timeout
 
         Args:
-            mcp_name: Nome do MCP (ex: "crm", "prospector")
+            mcp_name: Nome do MCP (ex: "crm", "billing")
             timeout: Timeout em segundos para aguardar startup
 
         Returns:
             bool: True se MCP está rodando, False se falhou
         """
-        pass  # Implementar
+        mcp = self.mcp_registry.find_one({"name": mcp_name})
+        if not mcp:
+            logger.error(f"MCP '{mcp_name}' não encontrado no mcp_registry")
+            return False
+
+        # 1. Verificar se já está healthy
+        if self.health_check(mcp_name):
+            logger.info(f"✅ MCP '{mcp_name}' já está healthy")
+            self.update_timestamps(mcp_name)
+            return True
+
+        # 2. Precisa iniciar - atualizar status para 'starting'
+        self.mcp_registry.update_one(
+            {"name": mcp_name},
+            {"$set": {"status": "starting"}}
+        )
+
+        # 3. Executar docker-compose up
+        if not self.start_container(mcp_name):
+            logger.error(f"❌ Falha ao iniciar container para MCP '{mcp_name}'")
+            self.mcp_registry.update_one(
+                {"name": mcp_name},
+                {"$set": {"status": "unhealthy"}}
+            )
+            return False
+
+        # 4. Aguardar health check passar (retry)
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.health_check(mcp_name):
+                logger.info(f"✅ MCP '{mcp_name}' iniciado com sucesso")
+                self.mcp_registry.update_one(
+                    {"name": mcp_name},
+                    {"$set": {"status": "healthy"}}
+                )
+                self.update_timestamps(mcp_name)
+                return True
+            time.sleep(2)  # Retry a cada 2 segundos
+
+        # 5. Timeout - falhou
+        logger.error(f"❌ Timeout aguardando MCP '{mcp_name}' ficar healthy")
+        self.mcp_registry.update_one(
+            {"name": mcp_name},
+            {"$set": {"status": "unhealthy"}}
+        )
+        return False
 
     def health_check(self, mcp_name: str) -> bool:
         """
@@ -291,21 +349,102 @@ class MCPContainerService:
         """
         Inicia container via docker-compose up -d.
 
-        Usa docker_compose_path do registry.
+        Usa docker_compose_path do registry (caminho relativo ao BASE_PATH).
         """
-        pass  # Implementar
+        mcp = self.mcp_registry.find_one({"name": mcp_name})
+        if not mcp:
+            return False
+
+        compose_path = mcp.get("docker_compose_path")
+        if not compose_path:
+            logger.error(f"MCP '{mcp_name}' não tem docker_compose_path configurado")
+            return False
+
+        # Montar caminho absoluto
+        full_path = os.path.join(self.base_path, compose_path)
+
+        if not os.path.exists(full_path):
+            logger.error(f"Arquivo não encontrado: {full_path}")
+            return False
+
+        try:
+            logger.info(f"🚀 Iniciando MCP '{mcp_name}': docker-compose -f {full_path} up -d")
+            result = subprocess.run(
+                ["docker-compose", "-f", full_path, "up", "-d"],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if result.returncode != 0:
+                logger.error(f"docker-compose up falhou: {result.stderr}")
+                return False
+
+            return True
+
+        except subprocess.TimeoutExpired:
+            logger.error(f"Timeout executando docker-compose up para '{mcp_name}'")
+            return False
+        except Exception as e:
+            logger.error(f"Erro ao iniciar container: {e}")
+            return False
 
     def stop_container(self, mcp_name: str) -> bool:
         """
         Para container via docker-compose down.
         """
-        pass  # Implementar
+        mcp = self.mcp_registry.find_one({"name": mcp_name})
+        if not mcp:
+            return False
+
+        compose_path = mcp.get("docker_compose_path")
+        if not compose_path:
+            return False
+
+        full_path = os.path.join(self.base_path, compose_path)
+
+        try:
+            logger.info(f"⏹️ Parando MCP '{mcp_name}': docker-compose -f {full_path} down")
+            result = subprocess.run(
+                ["docker-compose", "-f", full_path, "down"],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+
+            if result.returncode == 0:
+                self.mcp_registry.update_one(
+                    {"name": mcp_name},
+                    {"$set": {"status": "stopped", "last_heartbeat": None}}
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Erro ao parar container: {e}")
+            return False
 
     def update_timestamps(self, mcp_name: str):
         """
         Atualiza last_used e shutdown_after no registry.
         """
-        pass  # Implementar
+        mcp = self.mcp_registry.find_one({"name": mcp_name})
+        if not mcp:
+            return
+
+        shutdown_minutes = mcp.get("auto_shutdown_minutes", self.default_shutdown_minutes)
+        now = datetime.now(timezone.utc)
+        shutdown_after = now + timedelta(minutes=shutdown_minutes)
+
+        self.mcp_registry.update_one(
+            {"name": mcp_name},
+            {"$set": {
+                "last_used": now,
+                "shutdown_after": shutdown_after,
+                "last_heartbeat": now
+            }}
+        )
 
     def get_mcps_for_agent(self, agent_id: str, instance_id: str = None) -> List[str]:
         """
@@ -315,13 +454,34 @@ class MCPContainerService:
         - agents.mcp_configs (do template)
         - agent_instances.mcp_configs (extras da instância)
         """
-        pass  # Implementar
+        mcp_names = set()
+
+        # 1. MCPs do template do agente
+        agent = self.agents.find_one({"agent_id": agent_id})
+        if agent:
+            definition = agent.get("definition", {})
+            agent_mcps = definition.get("mcp_configs", []) or agent.get("mcp_configs", [])
+            mcp_names.update(agent_mcps)
+
+        # 2. MCPs extras da instância
+        if instance_id:
+            instance = self.agent_instances.find_one({"instance_id": instance_id})
+            if instance:
+                instance_mcps = instance.get("mcp_configs", [])
+                mcp_names.update(instance_mcps)
+
+        return list(mcp_names)
 
     def get_expired_mcps(self) -> List[Dict]:
         """
         Retorna MCPs que podem ser desligados (shutdown_after < now).
+        Usado pelo Conselheiro Zelador.
         """
-        pass  # Implementar
+        now = datetime.now(timezone.utc)
+        return list(self.mcp_registry.find({
+            "status": "healthy",
+            "shutdown_after": {"$lt": now}
+        }))
 ```
 
 ### 4.3 Integração no Watcher
@@ -437,7 +597,7 @@ Reporte quantos MCPs foram desligados.
 
 ## 5. Fluxo Completo
 
-### 4.1 Execução de Agente (Manual ou Conselheiro)
+### 5.1 Execução de Agente (Manual ou Conselheiro)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -496,7 +656,7 @@ Reporte quantos MCPs foram desligados.
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Cleanup pelo Conselheiro Zelador
+### 5.2 Cleanup pelo Conselheiro Zelador (Contexto Futuro)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -527,14 +687,14 @@ Reporte quantos MCPs foram desligados.
 
 ## 6. Arquivos a Modificar/Criar
 
-### 7.1 Modificar
+### 6.1 Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
 | `conductor-gateway/src/models/mcp_registry.py` | Adicionar campos e status |
 | `conductor/poc/container_to_host/claude-mongo-watcher.py` | Integrar MCPContainerService |
 
-### 7.2 Criar
+### 6.2 Criar
 
 | Arquivo | Descrição |
 |---------|-----------|
@@ -542,7 +702,7 @@ Reporte quantos MCPs foram desligados.
 | `conductor/config/agents/ResourceZelador_Agent/definition.yaml` | Definição do Conselheiro |
 | `conductor/config/agents/ResourceZelador_Agent/persona.md` | Persona do Conselheiro |
 
-### 7.3 Popular
+### 6.3 Popular mcp_registry
 
 A coleção `mcp_registry` precisa ser populada com os MCPs disponíveis, incluindo os novos campos:
 
@@ -558,9 +718,9 @@ A coleção `mcp_registry` precisa ser populada com os MCPs disponíveis, inclui
 {
     "name": "crm",
     "type": "external",
-    "url": "http://crm-mcp-sidecar:9201/sse",
+    "url": "http://verticals-crm-mcp:9000/sse",
     "host_url": "http://localhost:13145/sse",
-    "docker_compose_path": "/opt/primoia/services/crm/docker-compose.centralized.yml",
+    "docker_compose_path": "verticals/primoia-crm/docker-compose.centralized.yml",
     "status": "stopped",
     "auto_shutdown_minutes": 30,
     "metadata": {
@@ -569,6 +729,8 @@ A coleção `mcp_registry` precisa ser populada com os MCPs disponíveis, inclui
     }
 }
 ```
+
+**Nota:** O `docker_compose_path` é relativo ao `BASE_PATH` (`/mnt/ramdisk/primoia-main/primoia`).
 
 **Script de migração sugerido:**
 
@@ -585,19 +747,21 @@ db.mcp_registry.update_many(
 )
 ```
 
-### 7.4 Tarefa: Levantamento e Cadastro dos MCPs
+### 6.4 Tarefa: Levantamento e Cadastro dos MCPs
 
 **Objetivo:** Identificar todos os ~80 pares MCP + API e cadastrá-los no `mcp_registry` com os campos necessários para on-demand.
 
-#### 5.4.1 Descoberta
+#### 6.4.1 Descoberta
+
+**Caminho base:** `/mnt/ramdisk/primoia-main/primoia`
 
 1. **Localizar docker-compose files:**
 ```bash
 # Buscar todos os docker-compose.centralized.yml
-find /opt/primoia -name "docker-compose.centralized.yml" -type f
+find /mnt/ramdisk/primoia-main/primoia -name "docker-compose.centralized.yml" -type f
 
-# Ou buscar por padrão de nome de serviço MCP
-find /opt/primoia -name "docker-compose*.yml" -exec grep -l "mcp-sidecar" {} \;
+# Listar os ~80 MCPs descobertos
+find /mnt/ramdisk/primoia-main/primoia -name "docker-compose.centralized.yml" -exec grep -l "mcp" {} \;
 ```
 
 2. **Extrair informações de cada compose:**
@@ -606,33 +770,37 @@ find /opt/primoia -name "docker-compose*.yml" -exec grep -l "mcp-sidecar" {} \;
    - Porta mapeada no host (ex: 13145)
    - Nome do serviço API relacionado
 
-#### 5.4.2 Template de Coleta
+#### 6.4.2 Template de Coleta
 
 Para cada MCP encontrado, coletar:
 
 | Campo | Como Obter | Exemplo |
 |-------|------------|---------|
 | `name` | Nome do serviço sem sufixo | `crm` |
-| `url` | `{container_name}:{internal_port}/sse` | `http://crm-mcp-sidecar:9201/sse` |
+| `url` | `{container_name}:{internal_port}/sse` | `http://verticals-crm-mcp:9000/sse` |
 | `host_url` | `localhost:{host_port}/sse` | `http://localhost:13145/sse` |
-| `docker_compose_path` | Caminho absoluto do arquivo | `/opt/primoia/services/crm/docker-compose.centralized.yml` |
-| `backend_url` | URL do backend API | `http://crm-api:8001` |
-| `category` | Categoria do serviço | `verticals`, `core`, `billing` |
+| `docker_compose_path` | Caminho relativo ao base | `verticals/primoia-crm/docker-compose.centralized.yml` |
+| `backend_url` | URL do backend API | `http://verticals-crm-api:8000` |
+| `category` | Categoria do serviço | `verticals`, `billing`, `ai-services`, etc. |
 
-#### 5.4.3 Script de Descoberta Automática
+#### 6.4.3 Script de Descoberta Automática
 
 ```python
 #!/usr/bin/env python3
 """
 Script para descobrir MCPs e gerar cadastro para mcp_registry.
+Usa docker-compose.centralized.yml como fonte de verdade para portas.
 """
 import os
 import yaml
 import json
 from pathlib import Path
 
-def discover_mcps(base_path: str) -> list:
-    """Descobre MCPs a partir dos docker-compose files."""
+# Caminho base do Primoia
+BASE_PATH = "/mnt/ramdisk/primoia-main/primoia"
+
+def discover_mcps(base_path: str = BASE_PATH) -> list:
+    """Descobre MCPs a partir dos docker-compose.centralized.yml files."""
     mcps = []
 
     for compose_file in Path(base_path).rglob("docker-compose.centralized.yml"):
@@ -647,28 +815,48 @@ def discover_mcps(base_path: str) -> list:
                 if "mcp" in service_name.lower():
                     ports = service_config.get("ports", [])
 
-                    # Extrair port mapping (ex: "13145:9201")
+                    # Extrair port mapping do docker-compose.centralized.yml
+                    # Formato: "13145:9000" (host:container)
                     host_port = None
-                    internal_port = None
+                    internal_port = "9000"  # Porta padrão MCP
                     for port in ports:
                         if isinstance(port, str) and ":" in port:
-                            host_port, internal_port = port.split(":")[:2]
+                            parts = port.split(":")
+                            host_port = parts[0]
+                            internal_port = parts[1] if len(parts) > 1 else "9000"
                             break
+                        elif isinstance(port, int):
+                            host_port = str(port)
 
-                    # Extrair nome base (ex: "crm" de "crm-mcp-sidecar")
-                    base_name = service_name.replace("-mcp-sidecar", "").replace("-mcp", "")
+                    # Extrair nome base do MCP_NAME do environment ou do service_name
+                    env = service_config.get("environment", [])
+                    mcp_name = None
+                    if isinstance(env, list):
+                        for e in env:
+                            if isinstance(e, str) and e.startswith("MCP_NAME="):
+                                mcp_name = e.split("=")[1]
+                                break
+                    elif isinstance(env, dict):
+                        mcp_name = env.get("MCP_NAME")
+
+                    if not mcp_name:
+                        # Fallback: extrair do nome do serviço
+                        mcp_name = service_name.replace("-mcp", "").replace("verticals-", "").replace("billing-", "")
+
+                    # Caminho relativo ao base_path
+                    relative_path = str(compose_file.relative_to(base_path))
 
                     mcp_entry = {
-                        "name": base_name,
+                        "name": mcp_name,
                         "type": "external",
                         "url": f"http://{service_name}:{internal_port}/sse",
                         "host_url": f"http://localhost:{host_port}/sse" if host_port else None,
-                        "docker_compose_path": str(compose_file.absolute()),
-                        "status": "unknown",
+                        "docker_compose_path": relative_path,
+                        "status": "stopped",  # Todos começam parados (on-demand)
                         "auto_shutdown_minutes": 30,
                         "metadata": {
                             "category": categorize_service(str(compose_file)),
-                            "description": f"MCP for {base_name}"
+                            "description": f"MCP for {mcp_name}"
                         }
                     }
                     mcps.append(mcp_entry)
@@ -680,17 +868,23 @@ def discover_mcps(base_path: str) -> list:
 
 def categorize_service(path: str) -> str:
     """Categoriza serviço baseado no path."""
-    if "verticals" in path:
+    if "/verticals/" in path:
         return "verticals"
-    elif "billing" in path:
+    elif "/billing/" in path:
         return "billing"
-    elif "core" in path:
-        return "core"
+    elif "/ai-services/" in path:
+        return "ai-services"
+    elif "/analytics/" in path:
+        return "analytics"
+    elif "/infrastructure/" in path:
+        return "infrastructure"
+    elif "/platform/" in path:
+        return "platform"
     return "other"
 
 if __name__ == "__main__":
     import sys
-    base_path = sys.argv[1] if len(sys.argv) > 1 else "/opt/primoia"
+    base_path = sys.argv[1] if len(sys.argv) > 1 else BASE_PATH
 
     mcps = discover_mcps(base_path)
 
@@ -704,7 +898,7 @@ if __name__ == "__main__":
     print(f"\nSalvo em discovered_mcps.json")
 ```
 
-#### 5.4.4 Script de Cadastro no MongoDB
+#### 6.4.4 Script de Cadastro no MongoDB
 
 ```python
 #!/usr/bin/env python3
@@ -758,7 +952,7 @@ if __name__ == "__main__":
     register_mcps(json_file)
 ```
 
-#### 5.4.5 Validação Manual
+#### 6.4.5 Validação Manual
 
 Após descoberta automática, validar manualmente:
 
@@ -768,7 +962,7 @@ Após descoberta automática, validar manualmente:
 - [ ] Testar health check em alguns MCPs
 - [ ] Categorizar serviços corretamente
 
-#### 5.4.6 Resultado Esperado
+#### 6.4.6 Resultado Esperado
 
 Ao final desta tarefa, a coleção `mcp_registry` deve ter ~80 documentos com:
 
@@ -870,7 +1064,7 @@ db.mcp_registry.countDocuments({
 
 O frontend precisa de ajustes para suportar o novo fluxo de MCPs.
 
-### 11.1 Problema Atual
+### 10.1 Problema Atual
 
 | Componente | Problema |
 |------------|----------|
@@ -878,9 +1072,9 @@ O frontend precisa de ajustes para suportar o novo fluxo de MCPs.
 | **agent-launcher-dock** (ConductorChatComponent) | Não tem opção de gerenciar MCPs da instância |
 | **Criação de agente** | Funciona, mas depende de MCPs já estarem online |
 
-### 11.2 Alterações Necessárias
+### 10.2 Alterações Necessárias
 
-#### 9.2.1 Mudar Fonte de Dados do mcp-grid
+#### 10.2.1 Mudar Fonte de Dados do mcp-grid
 
 **Arquivo:** `conductor-web/src/app/services/agent.service.ts`
 
@@ -951,7 +1145,7 @@ interface MCPOption {
 </p>
 ```
 
-#### 9.2.2 Adicionar Gerenciamento de MCP no Dock
+#### 10.2.2 Adicionar Gerenciamento de MCP no Dock
 
 **Arquivo:** `conductor-web/src/app/shared/conductor-chat/conductor-chat.component.ts`
 
@@ -976,7 +1170,7 @@ Adicionar opção no menu de contexto (⚙️):
 </div>
 ```
 
-#### 9.2.3 Modal de Gerenciamento de MCPs da Instância
+#### 10.2.3 Modal de Gerenciamento de MCPs da Instância
 
 **Criar componente:** `conductor-web/src/app/shared/mcp-manager-modal/`
 
@@ -1050,7 +1244,7 @@ export class McpManagerModalComponent {
 }
 ```
 
-#### 9.2.4 Atualizar Coleção agent_instances
+#### 10.2.4 Atualizar Coleção agent_instances
 
 A coleção `agent_instances` precisa suportar o campo `mcp_configs`:
 
@@ -1074,7 +1268,7 @@ PATCH /api/agents/instances/{instanceId}/mcp-configs
 Body: { "mcp_configs": ["crm", "billing"] }
 ```
 
-### 11.3 Fluxo de Criação de Agente com MCP
+### 10.3 Fluxo de Criação de Agente com MCP
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1113,7 +1307,7 @@ Body: { "mcp_configs": ["crm", "billing"] }
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 11.4 Fluxo de Gerenciamento de MCP em Instância
+### 10.4 Fluxo de Gerenciamento de MCP em Instância
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1152,7 +1346,7 @@ Body: { "mcp_configs": ["crm", "billing"] }
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 11.5 Arquivos do Frontend a Modificar/Criar
+### 10.5 Arquivos do Frontend a Modificar/Criar
 
 | Arquivo | Alteração |
 |---------|-----------|
@@ -1164,7 +1358,7 @@ Body: { "mcp_configs": ["crm", "billing"] }
 | `conductor-chat.component.html` | Novo item no menu de opções |
 | **NOVO** `mcp-manager-modal/` | Componente para gerenciar MCPs da instância |
 
-### 11.6 Endpoints Necessários no Gateway
+### 10.6 Endpoints Necessários no Gateway
 
 | Endpoint | Método | Descrição |
 |----------|--------|-----------|
