@@ -16,7 +16,7 @@ from pathlib import Path
 BASE_PATH = Path("/mnt/ramdisk/primoia-main/primoia")
 
 # Variável a adicionar
-MCP_REGISTRY_URL_LINE = "    - MCP_REGISTRY_URL=${MCP_REGISTRY_URL:-http://community-conductor-mcp:8080}"
+MCP_REGISTRY_URL_LINE = "    - MCP_REGISTRY_URL=${MCP_REGISTRY_URL:-http://community-conductor-bff:8080}"
 
 # Linhas de referência para inserir após (em ordem de prioridade)
 REFERENCE_LINES = ["MCP_REGISTRY_ENABLED", "MCP_NAME"]

@@ -22,11 +22,11 @@ services:
     - primoia-shared-infrastructure_primoia-infra-net
     extra_hosts:
     - primoia-mongodb:host-gateway
-  community-conductor-mcp:
+  community-conductor-bff:
     build:
       context: ./conductor/conductor-gateway
       dockerfile: Dockerfile
-    container_name: community-conductor-mcp
+    container_name: community-conductor-bff
     restart: unless-stopped
     environment:
     - CONDUCTOR_API_URL=http://community-conductor-api:8000
@@ -35,9 +35,33 @@ services:
     volumes:
     - ./config/gateway/config.yaml:/app/config.yaml:ro
     ports:
-    - 13199:8080
+    - 14199:8080
     depends_on:
     - community-conductor-api
+    networks:
+    - primoia-network
+    - primoia-shared-infrastructure_primoia-infra-net
+  community-conductor-mcp:
+    build:
+      context: ../shared/primoia-mcp-sidecar
+      dockerfile: Dockerfile
+    container_name: community-conductor-mcp
+    restart: unless-stopped
+    ports:
+    - 13199:9000
+    environment:
+    - TARGET_URL=http://community-conductor-api:8000
+    - MCP_PORT=9000
+    - MCP_NAME=conductor-mcp
+    - MCP_HOST_PORT=13199
+    - ENABLE_IAM=true
+    - IAM_URL=http://infrastructure-iam-api:8000
+    - IAM_API_PREFIX=/api/v1
+    - MCP_REGISTRY_ENABLED=${MCP_REGISTRY_ENABLED:-true}
+    - MCP_REGISTRY_URL=${MCP_REGISTRY_URL:-http://community-conductor-bff:8080}
+    depends_on:
+    - community-conductor-api
+    - community-conductor-bff
     networks:
     - primoia-network
     - primoia-shared-infrastructure_primoia-infra-net
@@ -52,7 +76,7 @@ services:
     ports:
     - 11299:80
     depends_on:
-    - community-conductor-mcp
+    - community-conductor-bff
     networks:
     - primoia-network
 networks:

@@ -15,7 +15,7 @@ from pathlib import Path
 BASE_PATH = Path("/mnt/ramdisk/primoia-main/primoia")
 
 # Linhas a adicionar
-MCP_REGISTRY_URL_LINE = "    - MCP_REGISTRY_URL=${MCP_REGISTRY_URL:-http://community-conductor-mcp:8080}"
+MCP_REGISTRY_URL_LINE = "    - MCP_REGISTRY_URL=${MCP_REGISTRY_URL:-http://community-conductor-bff:8080}"
 
 
 def find_files_missing_mcp_name(base_path: Path) -> list[tuple[Path, str, str]]:
