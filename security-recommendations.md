@@ -208,7 +208,7 @@ version: '3.8'
 
 services:
   mongodb:
-    image: mongo:7.0
+    image: mongo:8.0
     container_name: conductor-mongodb
     restart: unless-stopped
     environment:
