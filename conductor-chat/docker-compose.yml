@@ -3,7 +3,8 @@
 version: '3.8'
 
 services:
-  # primobot-core - The main chat bot (fork)
+  # primobot-core - The main chat bot (fork of moltbot)
+  # Gateway runs on port 18789
   primobot-core:
     build:
       context: ./primobot-core
@@ -11,22 +12,25 @@ services:
     container_name: primobot-core
     restart: unless-stopped
     ports:
-      - "${PRIMOBOT_CORE_PORT:-3000}:3000"
+      - "${PRIMOBOT_CORE_PORT:-18789}:18789"
+      - "${PRIMOBOT_BRIDGE_PORT:-18790}:18790"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - HOME=/home/node
+      - TERM=xterm-256color
     volumes:
-      - primobot-data:/app/data
-      - primobot-sessions:/root/.primobot/sessions
+      - primobot-config:/home/node/.clawdbot
+      - primobot-workspace:/home/node/workspace
     networks:
       - conductor-chat-network
-      - primoia-network
+      - primoia-infra-net
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
   # primobot-mcp - REST API adapter with OpenAPI + MCP sidecar
   primobot-mcp:
@@ -40,14 +44,14 @@ services:
       - "${MCP_SIDECAR_PORT:-3101}:3101"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - PRIMOBOT_CORE_URL=http://primobot-core:3000
+      - PRIMOBOT_CORE_URL=http://primobot-core:18789
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       primobot-core:
         condition: service_healthy
     networks:
       - conductor-chat-network
-      - primoia-network
+      - primoia-infra-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
       interval: 30s
@@ -56,12 +60,12 @@ services:
       start_period: 10s
 
 volumes:
-  primobot-data:
-  primobot-sessions:
+  primobot-config:
+  primobot-workspace:
 
 networks:
   conductor-chat-network:
     driver: bridge
-  primoia-network:
+  primoia-infra-net:
     external: true
-    name: primoia-shared-infrastructure_primoia-network
+    name: primoia-shared-infrastructure_primoia-infra-net

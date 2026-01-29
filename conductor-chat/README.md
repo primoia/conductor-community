@@ -65,17 +65,60 @@ REST API adapter/facade that bridges primobot-core to the Primoia ecosystem.
 - Enables MCP tool integration without modifying the fork
 - Allows Conductor to send/receive messages through any channel
 
+## Prerequisites
+
+Before starting conductor-chat, ensure the shared infrastructure is running:
+
+```bash
+# 1. Start shared infrastructure (from primoia root)
+cd infrastructure/primoia-shared-infrastructure
+docker-compose up -d
+
+# Verify network exists
+docker network ls | grep primoia-infra-net
+```
+
 ## Quick Start
 
 ```bash
-# Copy environment file
+# 1. Navigate to conductor-chat
+cd conductor-community/conductor-chat
+
+# 2. Copy environment file
 cp .env.example .env
 
-# Start all services
+# 3. Build and start all services
+docker-compose build
 docker-compose up -d
 
-# Check health
+# 4. Check services are running
+docker-compose ps
+
+# 5. Check health
 curl http://localhost:3100/health
+```
+
+## Full Stack Startup (Primoia + Conductor + Chat)
+
+```bash
+# From primoia root directory
+
+# Step 1: Shared Infrastructure (PostgreSQL, Redis, MongoDB, RabbitMQ)
+cd infrastructure/primoia-shared-infrastructure
+docker-compose up -d
+cd ../..
+
+# Step 2: Conductor Community (API, Gateway, Web)
+cd conductor-community
+docker-compose up -d
+
+# Step 3: Conductor Chat (primobot-core + primobot-mcp)
+cd conductor-chat
+docker-compose up -d
+cd ../..
+
+# Verify all services
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
 ## Configuration
