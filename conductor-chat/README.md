@@ -98,32 +98,31 @@ docker-compose ps
 curl http://localhost:3100/health
 ```
 
-## Centralized Startup (Recommended)
+## Quick Start (Host Mode - Recommended)
 
-Use the centralized docker-compose to start everything together:
+The chat services run directly on the host for better performance:
 
 ```bash
-# From conductor-community root
-cd conductor-community
+# 1. Start primobot-core (gateway)
+cd conductor-chat/primobot-core
+pnpm install
+pnpm build
+pnpm gateway:watch  # or: pnpm moltbot gateway --port 18789
 
-# Start all services (conductor + chat)
-docker-compose -f docker-compose.centralized.yml up -d
-
-# Verify all services
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+# 2. In another terminal, start primobot-mcp (REST API adapter)
+cd conductor-chat/primobot-mcp
+pnpm install
+pnpm dev
 ```
 
-**Centralized ports:**
-| Service | Port |
-|---------|------|
-| community-conductor-api | 12199 |
-| community-conductor-bff | 14199 |
-| community-conductor-mcp | 13199 |
-| community-conductor-web | 11299 |
-| community-primobot-core | 18789 |
-| community-primobot-mcp | 15199 |
+**Ports:**
+| Service | Port | Description |
+|---------|------|-------------|
+| primobot-core | 18789 | Gateway |
+| primobot-mcp | 3100 | REST API |
+| primobot-mcp | 3101 | MCP Sidecar |
 
-## Full Stack Startup (Manual)
+## Full Stack Startup
 
 ```bash
 # From primoia root directory
@@ -175,19 +174,12 @@ Or configure channels via the gateway API.
 
 ## Ports
 
-### Standalone (docker-compose.yml)
 | Service | Port | Description |
 |---------|------|-------------|
 | primobot-core | 18789 | Main gateway |
+| primobot-core | 18790 | Bridge |
 | primobot-mcp | 3100 | REST API |
 | primobot-mcp | 3101 | MCP Sidecar |
-
-### Centralized (docker-compose.centralized.yml)
-| Service | Port | Description |
-|---------|------|-------------|
-| community-primobot-core | 18789 | Main gateway |
-| community-primobot-mcp | 15199 | REST API |
-| community-primobot-mcp | 15299 | MCP Sidecar |
 
 ## Integration with Conductor
 
