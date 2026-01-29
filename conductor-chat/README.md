@@ -98,7 +98,32 @@ docker-compose ps
 curl http://localhost:3100/health
 ```
 
-## Full Stack Startup (Primoia + Conductor + Chat)
+## Centralized Startup (Recommended)
+
+Use the centralized docker-compose to start everything together:
+
+```bash
+# From conductor-community root
+cd conductor-community
+
+# Start all services (conductor + chat)
+docker-compose -f docker-compose.centralized.yml up -d
+
+# Verify all services
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+**Centralized ports:**
+| Service | Port |
+|---------|------|
+| community-conductor-api | 12199 |
+| community-conductor-bff | 14199 |
+| community-conductor-mcp | 13199 |
+| community-conductor-web | 11299 |
+| community-primobot-core | 18789 |
+| community-primobot-mcp | 15199 |
+
+## Full Stack Startup (Manual)
 
 ```bash
 # From primoia root directory
@@ -108,14 +133,10 @@ cd infrastructure/primoia-shared-infrastructure
 docker-compose up -d
 cd ../..
 
-# Step 2: Conductor Community (API, Gateway, Web)
+# Step 2: Conductor Community (API, Gateway, Web, Chat)
 cd conductor-community
-docker-compose up -d
-
-# Step 3: Conductor Chat (primobot-core + primobot-mcp)
-cd conductor-chat
-docker-compose up -d
-cd ../..
+docker-compose -f docker-compose.centralized.yml up -d
+cd ..
 
 # Verify all services
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
@@ -154,11 +175,19 @@ Or configure channels via the gateway API.
 
 ## Ports
 
+### Standalone (docker-compose.yml)
 | Service | Port | Description |
 |---------|------|-------------|
 | primobot-core | 18789 | Main gateway |
 | primobot-mcp | 3100 | REST API |
 | primobot-mcp | 3101 | MCP Sidecar |
+
+### Centralized (docker-compose.centralized.yml)
+| Service | Port | Description |
+|---------|------|-------------|
+| community-primobot-core | 18789 | Main gateway |
+| community-primobot-mcp | 15199 | REST API |
+| community-primobot-mcp | 15299 | MCP Sidecar |
 
 ## Integration with Conductor
 

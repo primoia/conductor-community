@@ -81,6 +81,66 @@ services:
     - community-conductor-bff
     networks:
     - primoia-network
+
+  # Conductor Chat - primobot-core (moltbot fork)
+  community-primobot-core:
+    build:
+      context: ./conductor-chat/primobot-core
+      dockerfile: Dockerfile
+    container_name: community-primobot-core
+    restart: unless-stopped
+    ports:
+    - 18789:18789
+    - 18790:18790
+    environment:
+    - NODE_ENV=production
+    - HOME=/home/node
+    - TERM=xterm-256color
+    volumes:
+    - primobot-config:/home/node/.clawdbot
+    - primobot-workspace:/home/node/workspace
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+    - primoia-network
+    - primoia-shared-infrastructure_primoia-infra-net
+
+  # Conductor Chat - primobot-mcp (REST API adapter)
+  community-primobot-mcp:
+    build:
+      context: ./conductor-chat/primobot-mcp
+      dockerfile: Dockerfile
+    container_name: community-primobot-mcp
+    restart: unless-stopped
+    ports:
+    - 15199:3100
+    - 15299:3101
+    environment:
+    - NODE_ENV=production
+    - PRIMOBOT_CORE_URL=http://community-primobot-core:18789
+    - LOG_LEVEL=info
+    depends_on:
+      community-primobot-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+    - primoia-network
+    - primoia-shared-infrastructure_primoia-infra-net
+
+volumes:
+  primobot-config:
+  primobot-workspace:
+
 networks:
   primoia-network:
     driver: bridge
