@@ -1,5 +1,5 @@
 # Conductor Chat - Docker Compose
-# Orchestrates primobot-core and primobot-mcp together
+# Orchestrates primobot-core, primobot-mcp REST API, and MCP sidecar
 version: '3.8'
 
 services:
@@ -32,7 +32,7 @@ services:
       retries: 3
       start_period: 60s
 
-  # primobot-mcp - REST API adapter with OpenAPI + MCP sidecar
+  # primobot-mcp - REST API adapter with OpenAPI
   primobot-mcp:
     build:
       context: ./primobot-mcp
@@ -41,11 +41,13 @@ services:
     restart: unless-stopped
     ports:
       - "${PRIMOBOT_MCP_PORT:-3100}:3100"
-      - "${MCP_SIDECAR_PORT:-3101}:3101"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PRIMOBOT_CORE_URL=http://primobot-core:18789
+      - PRIMOBOT_MCP_PORT=3100
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - GATEWAY_TOKEN=${GATEWAY_TOKEN:-}
+      - GATEWAY_PASSWORD=${GATEWAY_PASSWORD:-}
     depends_on:
       primobot-core:
         condition: service_healthy
@@ -54,6 +56,40 @@ services:
       - primoia-infra-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # primobot-mcp-sidecar - MCP protocol server (reads OpenAPI from primobot-mcp)
+  primobot-mcp-sidecar:
+    build:
+      context: ../../shared/primoia-mcp-sidecar
+      dockerfile: Dockerfile
+    container_name: primobot-mcp-sidecar
+    restart: unless-stopped
+    ports:
+      - "${MCP_SIDECAR_PORT:-3101}:9000"
+    environment:
+      - TARGET_URL=http://primobot-mcp:3100
+      - MCP_PORT=9000
+      - MCP_NAME=primobot-chat
+      - MCP_HOST_PORT=${MCP_SIDECAR_PORT:-3101}
+      - ENABLE_IAM=${ENABLE_IAM:-false}
+      - IAM_URL=${IAM_URL:-http://infrastructure-iam-api:8000}
+      - IAM_API_PREFIX=/api/v1
+      - MCP_REGISTRY_ENABLED=${MCP_REGISTRY_ENABLED:-false}
+      - MCP_REGISTRY_URL=${MCP_REGISTRY_URL:-}
+      - RATE_LIMIT_MAX_REQUESTS=300
+      - RATE_LIMIT_WINDOW=60
+    depends_on:
+      primobot-mcp:
+        condition: service_healthy
+    networks:
+      - conductor-chat-network
+      - primoia-infra-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

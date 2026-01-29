@@ -1,35 +1,36 @@
 # Conductor Chat
 
-Chat and messaging integration layer for Conductor Community. Provides multi-platform messaging capabilities through primobot-core with a clean REST API adapter.
+Chat and messaging integration layer for Conductor Community. Provides multi-platform messaging capabilities through primobot-core with a clean REST API adapter and MCP tools for AI agents.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        conductor-chat                           │
-│                                                                 │
-│  ┌────────────────────┐       ┌───────────────────────────────┐│
-│  │   primobot-core    │       │        primobot-mcp           ││
-│  │      (fork)        │       │                               ││
-│  │                    │       │  ┌─────────────────────────┐  ││
-│  │  ┌──────────────┐  │       │  │   REST API + OpenAPI    │  ││
-│  │  │   Gateway    │◄─┼───────┼──│   /chat/send            │  ││
-│  │  │  port 18789  │  │       │  │   /chat/channels        │  ││
-│  │  └──────────────┘  │       │  │   /openapi.json         │  ││
-│  │                    │       │  └─────────────────────────┘  ││
-│  │  ┌──────────────┐  │       │             │                 ││
-│  │  │   Channels   │  │       │             ▼                 ││
-│  │  │  - Telegram  │  │       │  ┌─────────────────────────┐  ││
-│  │  │  - Discord   │  │       │  │     MCP Sidecar         │  ││
-│  │  │  - Slack     │  │       │  │   (reads OpenAPI)       │  ││
-│  │  │  - WhatsApp  │  │       │  │     port 3101           │  ││
-│  │  │  - Signal    │  │       │  └─────────────────────────┘  ││
-│  │  │  - Web       │  │       │                               ││
-│  │  └──────────────┘  │       │         port 3100             ││
-│  └────────────────────┘       └───────────────────────────────┘│
-│                                                                 │
-│  docker-compose.yml (orchestrates both services)               │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          conductor-chat                              │
+│                                                                      │
+│  ┌────────────────────┐       ┌─────────────────────────────────┐   │
+│  │   primobot-core    │       │          primobot-mcp           │   │
+│  │      (fork)        │       │                                 │   │
+│  │                    │       │  ┌───────────────────────────┐  │   │
+│  │  ┌──────────────┐  │       │  │    REST API + OpenAPI     │  │   │
+│  │  │   Gateway    │◄─┼───────┼──│    /send, /channels       │  │   │
+│  │  │  port 18789  │  │       │  │    /openapi.json          │  │   │
+│  │  │  (WebSocket) │  │       │  │    port 3100              │  │   │
+│  │  └──────────────┘  │       │  └───────────────────────────┘  │   │
+│  │                    │       │               │                 │   │
+│  │  ┌──────────────┐  │       │               ▼                 │   │
+│  │  │   Channels   │  │       │  ┌───────────────────────────┐  │   │
+│  │  │  - Telegram  │  │       │  │       MCP Sidecar         │  │   │
+│  │  │  - Discord   │  │       │  │    (reads OpenAPI)        │  │   │
+│  │  │  - Slack     │  │       │  │    port 3101              │  │   │
+│  │  │  - WhatsApp  │  │       │  └───────────────────────────┘  │   │
+│  │  │  - Signal    │  │       │                                 │   │
+│  │  │  - Web       │  │       │                                 │   │
+│  │  └──────────────┘  │       └─────────────────────────────────┘   │
+│  └────────────────────┘                                              │
+│                                                                      │
+│  docker-compose.yml (orchestrates all services)                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Components
@@ -40,7 +41,7 @@ Fork of [moltbot](https://github.com/moltbot/moltbot) - a multi-platform persona
 
 **Features:**
 - Multi-channel messaging (Telegram, Discord, Slack, WhatsApp, Signal, iMessage, Web)
-- Gateway server with WebSocket/HTTP
+- Gateway server with WebSocket RPC protocol
 - OpenAI-compatible API
 - Plugin/extension system
 
@@ -55,8 +56,9 @@ REST API adapter/facade that bridges primobot-core to the Primoia ecosystem.
 
 **Features:**
 - Clean REST API with OpenAPI 3.0 specification
-- Connects to primobot-core gateway
+- Connects to primobot-core gateway via WebSocket
 - MCP (Model Context Protocol) sidecar for AI tool integration
+- Swagger UI for interactive API documentation
 - Exposes only what Conductor needs
 
 **Why this architecture:**
@@ -78,7 +80,31 @@ docker-compose up -d
 docker network ls | grep primoia-infra-net
 ```
 
-## Quick Start
+## Quick Start (Host Mode - Recommended)
+
+The chat services run directly on the host for better performance and easier debugging:
+
+```bash
+# 1. Start primobot-core (gateway)
+cd conductor-chat/primobot-core
+pnpm install
+pnpm build
+pnpm gateway:watch  # or: pnpm moltbot gateway --port 18789
+
+# 2. In another terminal, start primobot-mcp (REST API adapter)
+cd conductor-chat/primobot-mcp
+cp .env.example .env
+pnpm install
+pnpm dev
+
+# 3. (Optional) In another terminal, start MCP sidecar
+cd shared/primoia-mcp-sidecar
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+TARGET_URL=http://localhost:3100 MCP_PORT=3101 MCP_NAME=primobot-chat python server.py
+```
+
+## Quick Start (Docker Mode)
 
 ```bash
 # 1. Navigate to conductor-chat
@@ -98,48 +124,14 @@ docker-compose ps
 curl http://localhost:3100/health
 ```
 
-## Quick Start (Host Mode - Recommended)
+## Ports
 
-The chat services run directly on the host for better performance:
-
-```bash
-# 1. Start primobot-core (gateway)
-cd conductor-chat/primobot-core
-pnpm install
-pnpm build
-pnpm gateway:watch  # or: pnpm moltbot gateway --port 18789
-
-# 2. In another terminal, start primobot-mcp (REST API adapter)
-cd conductor-chat/primobot-mcp
-pnpm install
-pnpm dev
-```
-
-**Ports:**
 | Service | Port | Description |
 |---------|------|-------------|
-| primobot-core | 18789 | Gateway |
+| primobot-core | 18789 | WebSocket Gateway |
+| primobot-core | 18790 | Bridge (optional) |
 | primobot-mcp | 3100 | REST API |
-| primobot-mcp | 3101 | MCP Sidecar |
-
-## Full Stack Startup
-
-```bash
-# From primoia root directory
-
-# Step 1: Shared Infrastructure (PostgreSQL, Redis, MongoDB, RabbitMQ)
-cd infrastructure/primoia-shared-infrastructure
-docker-compose up -d
-cd ../..
-
-# Step 2: Conductor Community (API, Gateway, Web, Chat)
-cd conductor-community
-docker-compose -f docker-compose.centralized.yml up -d
-cd ..
-
-# Verify all services
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-```
+| MCP Sidecar | 3101 | MCP Protocol |
 
 ## Configuration
 
@@ -151,7 +143,14 @@ PRIMOBOT_CORE_PORT=18789
 
 # primobot-mcp
 PRIMOBOT_MCP_PORT=3100
+PRIMOBOT_CORE_URL=http://localhost:18789
+GATEWAY_TOKEN=your-token-here     # Optional
+GATEWAY_PASSWORD=your-password    # Optional
+
+# MCP Sidecar
 MCP_SIDECAR_PORT=3101
+ENABLE_IAM=false                  # Enable IAM authentication
+MCP_REGISTRY_ENABLED=false        # Enable MCP registry
 
 # General
 NODE_ENV=production
@@ -163,23 +162,16 @@ LOG_LEVEL=info
 For primobot-core channel configuration (Telegram, Discord, etc.), you need to run the onboarding wizard:
 
 ```bash
-# Enter the container
+# If using Docker
 docker exec -it primobot-core sh
-
-# Run onboarding
 moltbot onboard
+
+# If running on host
+cd primobot-core
+pnpm moltbot onboard
 ```
 
 Or configure channels via the gateway API.
-
-## Ports
-
-| Service | Port | Description |
-|---------|------|-------------|
-| primobot-core | 18789 | Main gateway |
-| primobot-core | 18790 | Bridge |
-| primobot-mcp | 3100 | REST API |
-| primobot-mcp | 3101 | MCP Sidecar |
 
 ## Integration with Conductor
 
@@ -187,23 +179,42 @@ Or configure channels via the gateway API.
 
 ```bash
 # Via primobot-mcp REST API
-curl -X POST http://localhost:3100/chat/send \
+curl -X POST http://localhost:3100/send \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hello from Conductor!", "channel": "telegram"}'
+  -d '{
+    "to": "+5511999999999",
+    "message": "Hello from Conductor!",
+    "channel": "whatsapp"
+  }'
 ```
 
 ### Available Channels
 
 ```bash
-curl http://localhost:3100/chat/channels
+curl http://localhost:3100/channels
 ```
 
 ### MCP Tools
 
 The MCP sidecar at port 3101 exposes tools that can be used by AI agents:
-- `send_message` - Send message to any channel
-- `list_channels` - List available channels
-- `get_channel_status` - Check channel connection status
+
+| Tool | Description |
+|------|-------------|
+| `send` | Send message to any channel |
+| `poll` | Send a poll |
+| `channels_status` | List available channels |
+| `chat_send` | Send message via WebChat |
+| `chat_history` | Get chat history |
+| `sessions_list` | List all sessions |
+| `agents_list` | List available agents |
+| `models_list` | List available models |
+| `health` | Check system health |
+| `gateway_status` | Get full gateway status |
+
+## API Documentation
+
+- **Swagger UI**: http://localhost:3100/docs
+- **OpenAPI Spec**: http://localhost:3100/openapi.json
 
 ## Development
 
@@ -233,19 +244,37 @@ curl http://localhost:3100/openapi.json
 
 # Swagger UI
 open http://localhost:3100/docs
+
+# Gateway status
+curl http://localhost:3100/gateway/status
 ```
 
 ## Flow
 
 ```
-Conductor → primobot-mcp → primobot-core → Channel (Telegram/Discord/etc)
-                ↑                              ↓
-            OpenAPI                        User receives message
+Conductor → primobot-mcp (REST) → primobot-core (WebSocket) → Channel
+                ↑                                                 ↓
+            OpenAPI                                       User receives message
                 ↓
           MCP Sidecar
                 ↓
-          AI Agent Tools
+          AI Agent Tools (Claude, etc.)
 ```
+
+## Troubleshooting
+
+### Gateway not connected
+
+If `/health` shows `status: degraded`, check:
+1. primobot-core is running on port 18789
+2. `PRIMOBOT_CORE_URL` is correct in .env
+3. No firewall blocking the connection
+
+### MCP sidecar not finding tools
+
+1. Ensure REST API is running and healthy
+2. Check `TARGET_URL` points to REST API (http://localhost:3100)
+3. Verify OpenAPI spec is accessible: `curl http://localhost:3100/openapi.json`
 
 ## License
 
