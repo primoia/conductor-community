@@ -1,0 +1,67 @@
+# Conductor Chat - Docker Compose
+# Orchestrates primobot-core and primobot-mcp together
+version: '3.8'
+
+services:
+  # primobot-core - The main chat bot (fork)
+  primobot-core:
+    build:
+      context: ./primobot-core
+      dockerfile: Dockerfile
+    container_name: primobot-core
+    restart: unless-stopped
+    ports:
+      - "${PRIMOBOT_CORE_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - primobot-data:/app/data
+      - primobot-sessions:/root/.primobot/sessions
+    networks:
+      - conductor-chat-network
+      - primoia-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # primobot-mcp - REST API adapter with OpenAPI + MCP sidecar
+  primobot-mcp:
+    build:
+      context: ./primobot-mcp
+      dockerfile: Dockerfile
+    container_name: primobot-mcp
+    restart: unless-stopped
+    ports:
+      - "${PRIMOBOT_MCP_PORT:-3100}:3100"
+      - "${MCP_SIDECAR_PORT:-3101}:3101"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PRIMOBOT_CORE_URL=http://primobot-core:3000
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      primobot-core:
+        condition: service_healthy
+    networks:
+      - conductor-chat-network
+      - primoia-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  primobot-data:
+  primobot-sessions:
+
+networks:
+  conductor-chat-network:
+    driver: bridge
+  primoia-network:
+    external: true
+    name: primoia-shared-infrastructure_primoia-network

@@ -7,3 +7,9 @@
 [submodule "conductor/conductor-web"]
 	path = conductor/conductor-web
 	url = https://github.com/primoia/conductor-web.git
+[submodule "conductor-chat/primobot-core"]
+	path = conductor-chat/primobot-core
+	url = https://github.com/primoia/primobot-core.git
+[submodule "conductor-chat/primobot-mcp"]
+	path = conductor-chat/primobot-mcp
+	url = https://github.com/primoia/primobot-mcp.git
