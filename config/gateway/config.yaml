@@ -10,7 +10,9 @@ conductor:
   project_path: "/app"
   scripts_path: "scripts"
   timeout: 1800  # 30 minutes for long-running AI operations
-  conductor_api_url: "http://conductor-api:8000"
+  conductor_api_url: "http://community-conductor-api:8000"
+  construction_api_url: "http://verticals-construction-api-projects:8001"
+  observation_timeout_seconds: 10
 
 mongodb:
   url: mongodb://admin:czrimr@primoia-shared-mongo:27017/conductor_state?authSource=admin

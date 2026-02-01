@@ -10,6 +10,8 @@ services:
     - MONGO_INITDB_ROOT_USERNAME=admin
     - MONGO_INITDB_ROOT_PASSWORD=conductor123
     - MONGO_INITDB_DATABASE=conductor
+    - CONDUCTOR_API_URL=http://localhost:8000
+    - CONSTRUCTION_API_URL=http://verticals-construction-api-projects:8001
     env_file:
     - ./config/conductor/.env
     volumes:
