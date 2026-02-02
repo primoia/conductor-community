@@ -402,14 +402,14 @@ O endpoint `POST /api/v1/sync-agents` usa hash para detectar mudanças:
 curl -X POST http://localhost:12075/api/v1/sync-agents \
   -H "Content-Type: application/json" \
   -d '{
-    "conductor_mcp_url": "http://community-conductor-mcp:9000"
+    "conductor_mcp_url": "http://community-conductor-api-mcp:9000"
   }'
 
 # Forçar re-indexação de todos (ignora hash)
 curl -X POST http://localhost:12075/api/v1/sync-agents \
   -H "Content-Type: application/json" \
   -d '{
-    "conductor_mcp_url": "http://community-conductor-mcp:9000",
+    "conductor_mcp_url": "http://community-conductor-api-mcp:9000",
     "force": true
   }'
 ```
@@ -525,7 +525,7 @@ A sincronização de 57 agentes requer aproximadamente:
 Por isso, o `docker-compose.centralized.yml` configura um limite maior:
 
 ```yaml
-community-conductor-mcp:
+community-conductor-api-mcp:
   environment:
     - RATE_LIMIT_MAX_REQUESTS=300
     - RATE_LIMIT_WINDOW=60
@@ -591,7 +591,7 @@ Se o endpoint `sync-agents` retornar erros 429:
 
 1. Verificar configuração do MCP:
    ```bash
-   docker exec community-conductor-mcp env | grep RATE_LIMIT
+   docker exec community-conductor-api-mcp env | grep RATE_LIMIT
    ```
 
 2. Aumentar limite se necessário no `docker-compose.centralized.yml`:
@@ -601,7 +601,7 @@ Se o endpoint `sync-agents` retornar erros 429:
 
 3. Reiniciar o container:
    ```bash
-   docker-compose -f docker-compose.centralized.yml restart community-conductor-mcp
+   docker-compose -f docker-compose.centralized.yml restart community-conductor-api-mcp
    ```
 
 ---
