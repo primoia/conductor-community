@@ -44,6 +44,7 @@ services:
     - primoia-network
     - primoia-shared-infrastructure_primoia-infra-net
   community-conductor-api-mcp:
+    image: primoia/mcp-sidecar:latest
     build:
       context: ../shared/primoia-mcp-sidecar
       dockerfile: Dockerfile
@@ -70,6 +71,7 @@ services:
     - primoia-network
     - primoia-shared-infrastructure_primoia-infra-net
   community-conductor-bff-mcp:
+    image: primoia/mcp-sidecar:latest
     build:
       context: ../shared/primoia-mcp-sidecar
       dockerfile: Dockerfile
