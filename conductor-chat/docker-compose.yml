@@ -45,20 +45,17 @@ services:
       dockerfile: Dockerfile
     container_name: primobot-api
     restart: unless-stopped
-    ports:
-      - "${PRIMOBOT_API_PORT:-3100}:3100"
+    network_mode: host
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - PRIMOBOT_CORE_URL=${PRIMOBOT_CORE_URL:-http://host.docker.internal:18789}
+      - PRIMOBOT_CORE_URL=${PRIMOBOT_CORE_URL:-http://localhost:18789}
       - PRIMOBOT_MCP_PORT=3100
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - GATEWAY_TOKEN=${GATEWAY_TOKEN:-}
       - GATEWAY_PASSWORD=${GATEWAY_PASSWORD:-}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - conductor-chat-network
-      - primoia-infra-net
+    volumes:
+      - ${HOME}/.openclaw:/root/.openclaw:ro
+      - ./primobot-mcp/dist:/app/dist:ro
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const http = require('http'); http.get('http://localhost:3100/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))\""]
       interval: 30s
