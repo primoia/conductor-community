@@ -91,7 +91,7 @@ curl -X POST http://localhost:5006/api/agents/code_generator_agent/promote-counc
 **Verificar MongoDB:**
 ```bash
 # Conectar ao MongoDB
-mongosh mongodb://admin:czrimr@localhost:27017/?authSource=admin
+mongosh mongodb://admin:<MONGO_PASSWORD>@localhost:27017/?authSource=admin
 
 # Verificar agente
 use conductor_state
@@ -187,7 +187,7 @@ curl -X POST http://localhost:5006/api/agents/councilors/executions \
 
 **Verificar MongoDB:**
 ```bash
-mongosh mongodb://admin:czrimr@localhost:27017/?authSource=admin
+mongosh mongodb://admin:<MONGO_PASSWORD>@localhost:27017/?authSource=admin
 
 use conductor_state
 db.councilor_executions.findOne({ execution_id: "exec_test_001" })
@@ -464,7 +464,7 @@ db.agents.findOne({ agent_id: "code_generator_agent" })
 ### Índices Criados
 
 ```bash
-mongosh mongodb://admin:czrimr@localhost:27017/?authSource=admin
+mongosh mongodb://admin:<MONGO_PASSWORD>@localhost:27017/?authSource=admin
 
 use conductor_state
 

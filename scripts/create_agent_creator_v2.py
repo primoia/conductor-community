@@ -4,13 +4,13 @@ Script para criar o AgentCreator_Agent v2 diretamente no MongoDB.
 Usa a estrutura exata do conductor: {agent_id, definition, persona}
 """
 
+import os
 import sys
 from datetime import datetime, timezone
 from pymongo import MongoClient
 
 # Conexão MongoDB - usa localhost pois estamos fora do Docker
-# Credenciais do .env.centralized
-MONGO_URI = "mongodb://admin:czrimr@localhost:27017/conductor_state?authSource=admin"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/conductor_state?authSource=admin")
 DB_NAME = "conductor_state"
 COLLECTION = "agents"
 

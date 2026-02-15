@@ -139,8 +139,9 @@ test_connection() {
     local database="$2"
     local collection="$3"
     
+    local masked_uri=$(echo "$mongo_uri" | sed 's|://[^:]*:[^@]*@|://***:***@|')
     echo -e "${BLUE}🔍 Testando conexão MongoDB...${NC}"
-    echo -e "   URI: $mongo_uri"
+    echo -e "   URI: $masked_uri"
     echo -e "   Database: $database"
     echo -e "   Collection: $collection"
     echo ""
@@ -172,8 +173,9 @@ run_watcher() {
     local background="$6"
     
     echo -e "${BLUE}🚀 Iniciando Claude MongoDB Watcher${NC}"
+    local masked_uri=$(echo "$mongo_uri" | sed 's|://[^:]*:[^@]*@|://***:***@|')
     echo -e "${BLUE}📊 Configurações:${NC}"
-    echo -e "   MongoDB URI: $mongo_uri"
+    echo -e "   MongoDB URI: $masked_uri"
     echo -e "   Database: $database"
     echo -e "   Collection: $collection"
     echo -e "   Poll Interval: ${poll_interval}s"

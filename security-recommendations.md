@@ -6,10 +6,10 @@
 **Problema**: Senhas do MongoDB expostas no código
 ```yaml
 # docker-compose.yml - LINHA 8
-MONGO_INITDB_ROOT_PASSWORD: conductor123
+MONGO_INITDB_ROOT_PASSWORD: <MONGO_PASSWORD>
 
 # settings.py - LINHA 26  
-"url": "mongodb://admin:czrimr@mongodb:27017/?authSource=admin"
+"url": "mongodb://admin:<MONGO_PASSWORD>@mongodb:27017/?authSource=admin"
 ```
 
 **Solução Imediata**:

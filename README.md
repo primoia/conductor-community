@@ -131,7 +131,7 @@ server:
 
 database:
   mongodb:
-    uri: "mongodb://admin:conductor123@mongodb:27017/conductor?authSource=admin"
+    uri: "mongodb://admin:<MONGO_PASSWORD>@mongodb:27017/conductor?authSource=admin"
 
 conductor:
   workflows:

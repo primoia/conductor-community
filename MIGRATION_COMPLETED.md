@@ -46,7 +46,7 @@ The conductor-community service has been migrated from a standalone docker-compo
 ### Environment Variables (.env.centralized)
 ```
 MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=conductor123
+MONGO_INITDB_ROOT_PASSWORD=<MONGO_PASSWORD>
 MONGO_INITDB_DATABASE=conductor
 CONDUCTOR_API_URL=http://conductor-api:8000
 CONDUCTOR_GATEWAY_URL=http://gateway:8080

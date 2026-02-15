@@ -492,7 +492,7 @@ docker build -t conductor-gateway .
 
 # Run
 docker run -p 5006:5006 \
-  -e MONGODB_URL="mongodb://admin:czrimr@mongodb:27017/?authSource=admin" \
+  -e MONGODB_URL="mongodb://admin:<MONGO_PASSWORD>@mongodb:27017/?authSource=admin" \
   -e MONGODB_DATABASE="conductor_state" \
   conductor-gateway
 ```
@@ -506,7 +506,7 @@ services:
     ports:
       - "5006:5006"
     environment:
-      MONGODB_URL: mongodb://admin:czrimr@mongodb:27017/?authSource=admin
+      MONGODB_URL: mongodb://admin:<MONGO_PASSWORD>@mongodb:27017/?authSource=admin
       MONGODB_DATABASE: conductor_state
     depends_on:
       - mongodb

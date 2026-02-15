@@ -7,13 +7,14 @@ services:
     container_name: community-conductor-api
     restart: unless-stopped
     environment:
-    - MONGO_INITDB_ROOT_USERNAME=admin
-    - MONGO_INITDB_ROOT_PASSWORD=conductor123
-    - MONGO_INITDB_DATABASE=conductor
-    - CONDUCTOR_API_URL=http://localhost:8000
+    - MONGO_URI=${PRIMOIA_CONDUCTOR_MONGO_URI}
+    - MONGODB_URI=${PRIMOIA_CONDUCTOR_MONGO_URI}
+    - IAM_ENABLED=true
+    - IAM_SECRET_KEY=${PRIMOIA_IAM_SECRET_KEY}
+    - IAM_URL=http://infrastructure-iam-api:8000
+    - IAM_API_PREFIX=/api/v1
     - CONSTRUCTION_API_URL=http://verticals-construction-api-projects:8001
-    env_file:
-    - ./config/conductor/.env
+    - CONDUCTOR_API_URL=http://localhost:8000
     volumes:
     - ./config/conductor/config.yaml:/app/config.yaml:ro
     - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -31,9 +32,13 @@ services:
     container_name: community-conductor-bff
     restart: unless-stopped
     environment:
+    - MONGODB_URL=${PRIMOIA_CONDUCTOR_MONGO_URI}
+    - MONGODB_URI=${PRIMOIA_CONDUCTOR_MONGO_URI}
     - CONDUCTOR_API_URL=http://community-conductor-api:8000
-    env_file:
-    - ./config/gateway/.env
+    - IAM_ENABLED=true
+    - IAM_SECRET_KEY=${PRIMOIA_IAM_SECRET_KEY}
+    - IAM_URL=http://infrastructure-iam-api:8000
+    - IAM_API_PREFIX=/api/v1
     volumes:
     - ./config/gateway/config.yaml:/app/config.yaml:ro
     ports:

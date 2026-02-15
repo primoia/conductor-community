@@ -8,8 +8,8 @@ storage:
   # For filesystem storage (optional)
   backup_path: .conductor_workspace
 
-  # For MongoDB storage - conecta no MongoDB shared infrastructure
-  connection_string: mongodb://admin:czrimr@primoia-shared-mongo:27017/conductor_state?authSource=admin
+  # For MongoDB storage - set via MONGO_URI or MONGODB_URI environment variable
+  # connection_string is injected by Docker Compose from shell env
 
 # Tool plugins (optional)
 tool_plugins: []

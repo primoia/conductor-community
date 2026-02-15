@@ -15,7 +15,7 @@ conductor:
   observation_timeout_seconds: 10
 
 mongodb:
-  url: mongodb://admin:czrimr@primoia-shared-mongo:27017/conductor_state?authSource=admin
+  url: mongodb://localhost:27017/conductor_state
   database: conductor_state
 
 # Environment variables will override these values if set

@@ -5,19 +5,21 @@
 # Portas: gateway:5006, web:8080, api:8000
 # =============================================================
 services:
-  # MongoDB: Usando primoia-shared-mongo da infraestrutura compartilhada
-  # Acesse via: mongodb://admin:czrimr@primoia-shared-mongo:27017/?authSource=admin
-
   conductor-api:
     build:
       context: ./conductor/conductor
       dockerfile: Dockerfile
     container_name: conductor-api-dev
     restart: unless-stopped
-    env_file:
-      - ./config/conductor/.env
     environment:
       - NODE_ENV=development
+      - MONGO_URI=${PRIMOIA_CONDUCTOR_MONGO_URI}
+      - MONGODB_URI=${PRIMOIA_CONDUCTOR_MONGO_URI}
+      - IAM_ENABLED=true
+      - IAM_SECRET_KEY=${PRIMOIA_IAM_SECRET_KEY}
+      - IAM_URL=http://infrastructure-iam-api:8000
+      - IAM_API_PREFIX=/api/v1
+      - CONSTRUCTION_API_URL=http://verticals-construction-api-projects:8001
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -38,10 +40,15 @@ services:
     restart: unless-stopped
     depends_on:
       - conductor-api
-    env_file:
-      - ./config/gateway/.env
     environment:
       - NODE_ENV=development
+      - MONGODB_URL=${PRIMOIA_CONDUCTOR_MONGO_URI}
+      - MONGODB_URI=${PRIMOIA_CONDUCTOR_MONGO_URI}
+      - CONDUCTOR_API_URL=http://community-conductor-api:8000
+      - IAM_ENABLED=true
+      - IAM_SECRET_KEY=${PRIMOIA_IAM_SECRET_KEY}
+      - IAM_URL=http://infrastructure-iam-api:8000
+      - IAM_API_PREFIX=/api/v1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
