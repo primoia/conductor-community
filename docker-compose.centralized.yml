@@ -15,6 +15,7 @@ services:
     - IAM_API_PREFIX=/api/v1
     - CONSTRUCTION_API_URL=http://verticals-construction-api-projects:8001
     - CONDUCTOR_API_URL=http://localhost:8000
+    - AMQP_URL=${PRIMOIA_AMQP_URL:-amqp://admin:admin123@primoia-shared-rabbitmq:5672/}
     volumes:
     - ./config/conductor/config.yaml:/app/config.yaml:ro
     - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -25,6 +26,12 @@ services:
     - primoia-shared-infrastructure_primoia-infra-net
     extra_hosts:
     - primoia-mongodb:host-gateway
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
   community-conductor-bff:
     build:
       context: ./conductor/conductor-gateway
