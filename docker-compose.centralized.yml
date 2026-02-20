@@ -70,11 +70,29 @@ services:
     - RATE_LIMIT_MAX_REQUESTS=300
     - RATE_LIMIT_WINDOW=60
     depends_on:
-    - community-conductor-api
-    - community-conductor-bff
+      community-conductor-api:
+        condition: service_healthy
+      community-conductor-bff:
+        condition: service_healthy
     networks:
     - primoia-network
     - primoia-shared-infrastructure_primoia-infra-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test:
+      - CMD
+      - python3
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:9000/health')
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   community-conductor-bff-mcp:
     image: primoia/mcp-sidecar:latest
     build:
@@ -97,10 +115,27 @@ services:
     - RATE_LIMIT_MAX_REQUESTS=300
     - RATE_LIMIT_WINDOW=60
     depends_on:
-    - community-conductor-bff
+      community-conductor-bff:
+        condition: service_healthy
     networks:
     - primoia-network
     - primoia-shared-infrastructure_primoia-infra-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test:
+      - CMD
+      - python3
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:9000/health')
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   community-conductor-web:
     build:
       context: ./conductor/conductor-web
