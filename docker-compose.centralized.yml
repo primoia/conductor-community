@@ -16,6 +16,8 @@ services:
     - CONSTRUCTION_API_URL=http://verticals-construction-api-projects:8001
     - CONDUCTOR_API_URL=http://localhost:8000
     - AMQP_URL=${PRIMOIA_AMQP_URL:-amqp://admin:admin123@primoia-shared-rabbitmq:5672/}
+    - PULSE_ESCALATION_PROJECT_ID=${PULSE_ESCALATION_PROJECT_ID:-2}
+    - CONDUCTOR_HOST_CWD=${CONDUCTOR_HOST_CWD:-/tmp}
     volumes:
     - ./config/conductor/config.yaml:/app/config.yaml:ro
     - /var/run/docker.sock:/var/run/docker.sock:ro
