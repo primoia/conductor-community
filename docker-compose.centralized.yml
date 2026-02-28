@@ -165,6 +165,7 @@ services:
     - community-conductor-bff
     networks:
     - primoia-network
+    - primoia-shared-infrastructure_primoia-infra-net
 
   # NOTE: conductor-chat (primobot-core + primobot-mcp) runs on host
   # Start with: cd conductor-chat/primobot-core && pnpm gateway:watch
