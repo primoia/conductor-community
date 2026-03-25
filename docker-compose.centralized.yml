@@ -163,6 +163,8 @@ services:
     - 11299:80
     depends_on:
     - community-conductor-bff
+    extra_hosts:
+    - host.docker.internal:host-gateway
     networks:
     - primoia-network
     - primoia-shared-infrastructure_primoia-infra-net
